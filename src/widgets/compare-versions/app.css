@@ -1,0 +1,229 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  color: var(--ring-text-color);
+  background-color: var(--ring-content-background-color);
+  font-family: var(--ring-font-family);
+  font-size: var(--ring-font-size);
+  line-height: var(--ring-line-height);
+}
+
+/* Two columns: version list + diff. The list column disappears when collapsed. */
+.app {
+  display: grid;
+  grid-template-columns: calc(var(--ring-unit) * 40) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.app--collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* --- Version list ------------------------------------------------------- */
+
+.version-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--ring-line-color);
+  background-color: var(--ring-sidebar-background-color);
+}
+
+.version-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2) var(--ring-unit);
+}
+
+.version-list__title {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--ring-unit) / 2);
+}
+
+.version-list__filters {
+  align-self: flex-start;
+  margin: 0 calc(var(--ring-unit) * 2);
+}
+
+.version-list__hint {
+  display: block;
+  padding: var(--ring-unit) calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 1.5);
+}
+
+.version-list__items {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border-top: 1px solid var(--ring-line-color);
+}
+
+.version-list__state {
+  display: flex;
+  align-items: center;
+  gap: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 2);
+}
+
+.version-list__state--error {
+  color: var(--ring-error-color);
+}
+
+.version-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ring-unit);
+  padding: 0 calc(var(--ring-unit) * 2) 0 calc(var(--ring-unit) * 1.5);
+  border-bottom: 1px solid var(--ring-line-color);
+}
+
+.version-row:hover {
+  background-color: var(--ring-hover-background-color);
+}
+
+.version-row--selected {
+  background-color: var(--ring-selected-background-color);
+}
+
+.version-row__check {
+  display: flex;
+  align-items: center;
+  height: calc(var(--ring-unit) * 5);
+}
+
+/* The row body is a real button for keyboard access, styled as plain content. */
+.version-row__body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--ring-unit);
+  align-items: baseline;
+  min-width: 0;
+  margin: 0;
+  padding: var(--ring-unit) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.version-row__body:focus-visible {
+  outline: 2px solid var(--ring-border-hover-color);
+  outline-offset: -2px;
+  border-radius: var(--ring-border-radius);
+}
+
+.version-row__kind {
+  font-weight: bold;
+}
+
+.version-row__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ring-unit);
+  min-width: 0;
+}
+
+.version-row__number {
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+}
+
+.version-row__date {
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+  white-space: nowrap;
+}
+
+.version-row__author {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Diff pane ----------------------------------------------------------- */
+
+.diff-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.diff-pane__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--ring-unit) * 2);
+  padding: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2);
+  border-bottom: 1px solid var(--ring-line-color);
+}
+
+.diff-pane__toolbar-start,
+.diff-pane__toolbar-end {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ring-unit) * 2);
+}
+
+.diff-pane__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-pane__body table {
+  width: 100%;
+}
+
+.diff-pane__body pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-pane__state {
+  padding: calc(var(--ring-unit) * 3);
+}
+
+/* Initial version: plain text, nothing earlier to diff against. */
+.diff-pane__initial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 2);
+}
+
+.diff-pane__initial-title {
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+}
+
+.diff-pane__plain {
+  margin: 0;
+  padding: calc(var(--ring-unit) * 2);
+  border: 1px solid var(--ring-line-color);
+  border-radius: var(--ring-border-radius);
+  background-color: var(--ring-sidebar-background-color);
+  font-family: var(--ring-font-family-monospace);
+  font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

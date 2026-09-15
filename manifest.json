@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/youtrack-app.json",
+  "name": "diffyt",
+  "title": "Diffyt",
+  "description": "Compare versions of issue summaries and descriptions with a line-by-line diff.",
+  "version": "0.1.0",
+  "vendor": {
+    "name": "Marcus Christensson",
+    "url": "https://github.com/christensson/diffyt"
+  },
+  "icon": "icon.svg",
+  "widgets": [
+    {
+      "key": "compare-versions",
+      "name": "Compare versions",
+      "description": "Compare summary and description versions of an issue",
+      "indexPath": "compare-versions/index.html",
+      "iconPath": "compare-versions/widget-icon.svg",
+      "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
+      "permissions": ["READ_ISSUE"],
+      "expectedDimensions": {
+        "width": 1200,
+        "height": 800
+      }
+    }
+  ]
+}
