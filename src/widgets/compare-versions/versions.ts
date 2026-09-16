@@ -1,5 +1,12 @@
-import type {ActivityAuthor, ActivityItem, FieldActivityItem, FieldInfo, IssueSnapshot, OldestRemoved} from './api';
-import {type FieldItemValue, formatFieldText, isMultiValueType, stateAfter, stateBefore, toList} from './field-values';
+import type {ActivityAuthor, ActivityItem, FieldActivityItem, FieldInfo, IssueSnapshot, OldestRemoved} from '@/common/compare/api';
+import {type FieldItemValue, isMultiValueType, stateAfter, stateBefore, toList} from '@/common/compare/field-values';
+import {
+  type CatalogueEntry,
+  entryFromSnapshotField,
+  mergeCatalogue,
+  renderContent,
+  renderFieldLines
+} from '@/common/compare/issue-state';
 
 /** The two views of a version; the list is filtered to versions that changed the selected part. */
 export type Part = 'Content' | 'Fields';
@@ -35,19 +42,10 @@ export const kindOfItem = (item: ActivityItem): TextKind =>
 export const textFor = (version: Version, part: Part): string =>
   (part === 'Content' ? version.contentText : version.fieldsText);
 
-const renderContent = (summary: string, description: string): string =>
-  `${summary}\n\nDescription:\n${description}`;
 
 /** Versions relevant for a part: those that changed it, plus the creation state. */
 export const versionsFor = (versions: Version[], part: Part): Version[] =>
   versions.filter(version => version.isInitial || version.changedParts.has(part));
-
-interface CatalogueEntry {
-  id: string;
-  label: string;
-  isMulti: boolean;
-  typeId: string;
-}
 
 interface FieldTimeline {
   initial: FieldItemValue[];
@@ -63,30 +61,17 @@ const hasField = (item: FieldActivityItem): item is FieldActivityItem & {field: 
 
 /** All custom fields to show: the issue's current fields in project order, then fields only seen in history. */
 const buildCatalogue = (snapshot: IssueSnapshot | null, fieldItems: FieldActivityItem[]): CatalogueEntry[] => {
-  const entries: CatalogueEntry[] = (snapshot?.fields ?? []).map(field => ({
-    id: field.id,
-    label: field.label,
-    isMulti: isMultiValueType(field.fieldType),
-    typeId: field.fieldType?.id ?? ''
-  }));
-  const seen = new Set(entries.map(entry => entry.id));
-
-  const extra: CatalogueEntry[] = [];
-  for (const item of fieldItems.filter(hasField)) {
-    const id = fieldKey(item.field);
-    if (!seen.has(id)) {
-      seen.add(id);
-      const fieldType = item.field.customField?.fieldType ?? null;
-      extra.push({
-        id,
-        label: item.field.presentation || item.field.name || id,
-        isMulti: isMultiValueType(fieldType),
-        typeId: fieldType?.id ?? ''
-      });
-    }
-  }
-  extra.sort((a, b) => a.label.localeCompare(b.label));
-  return [...entries, ...extra];
+  const base = (snapshot?.fields ?? []).map(entryFromSnapshotField);
+  const fromHistory = fieldItems.filter(hasField).map(item => {
+    const fieldType = item.field.customField?.fieldType ?? null;
+    return {
+      id: fieldKey(item.field),
+      label: item.field.presentation || item.field.name || fieldKey(item.field),
+      isMulti: isMultiValueType(fieldType),
+      typeId: fieldType?.id ?? ''
+    };
+  });
+  return mergeCatalogue(base, fromHistory);
 };
 
 interface FieldStates {
@@ -187,11 +172,6 @@ interface IssueState {
   fields: Map<string, FieldItemValue[]>;
 }
 
-const renderFields = (state: IssueState, catalogue: CatalogueEntry[], locale: string | undefined): string =>
-  catalogue
-    .map(entry => formatFieldText(entry.label, state.fields.get(entry.id) ?? [], entry.isMulti, entry.typeId, locale))
-    .join('\n');
-
 const pushUnique = (list: string[], value: string): void => {
   if (!list.includes(value)) {
     list.push(value);
@@ -230,7 +210,7 @@ export function buildVersions(
     summary: state.summary,
     description: state.description,
     contentText: renderContent(state.summary, state.description),
-    fieldsText: renderFields(state, catalogue, locale)
+    fieldsText: renderFieldLines(state.fields, catalogue, locale)
   }];
 
   const events: Event[] = [
@@ -269,7 +249,7 @@ export function buildVersions(
       summary: state.summary,
       description: state.description,
       contentText: renderContent(state.summary, state.description),
-      fieldsText: renderFields(state, catalogue, locale)
+      fieldsText: renderFieldLines(state.fields, catalogue, locale)
     });
   }
 

@@ -1,17 +1,8 @@
-import type {ActivityAuthor} from './api';
+import type {ActivityAuthor} from '@/common/compare/api';
+import type {DiffModel} from '@/common/compare/types';
 import {type Part, type Version, textFor} from './versions';
 
-export type LoadStatus = 'loading' | 'ready' | 'error';
-
-export interface ViewOptions {
-  splitView: boolean;
-  wordDiff: boolean;
-  showDiffOnly: boolean;
-}
-
-export type DiffModel =
-  | {mode: 'diff'; label: string; oldText: string; newText: string; leftTitle: string; rightTitle: string}
-  | {mode: 'initial'; label: string; text: string; title: string};
+export type {DiffModel, LoadStatus, ViewOptions} from '@/common/compare/types';
 
 /** At most two versions can be selected: one shows its change, two show the diff between them. */
 export const MAX_SELECTED = 2;

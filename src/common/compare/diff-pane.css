@@ -1,0 +1,71 @@
+/* Diff pane shared by the compare widgets. */
+
+/* --- Diff pane ----------------------------------------------------------- */
+
+.diff-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.diff-pane__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--ring-unit) * 2);
+  padding: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2);
+  border-bottom: 1px solid var(--ring-line-color);
+}
+
+.diff-pane__toolbar-start,
+.diff-pane__toolbar-end {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ring-unit) * 2);
+}
+
+.diff-pane__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-pane__body table {
+  width: 100%;
+}
+
+.diff-pane__body pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-pane__state {
+  padding: calc(var(--ring-unit) * 3);
+}
+
+/* Initial version: plain text, nothing earlier to diff against. */
+.diff-pane__initial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 2);
+}
+
+.diff-pane__initial-title {
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+}
+
+.diff-pane__plain {
+  margin: 0;
+  padding: calc(var(--ring-unit) * 2);
+  border: 1px solid var(--ring-line-color);
+  border-radius: var(--ring-border-radius);
+  background-color: var(--ring-sidebar-background-color);
+  font-family: var(--ring-font-family-monospace);
+  font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

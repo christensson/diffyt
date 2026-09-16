@@ -5,7 +5,8 @@ import Text from '@jetbrains/ring-ui-built/components/text/text';
 import Toggle, {Size as ToggleSize} from '@jetbrains/ring-ui-built/components/toggle/toggle';
 import chevronRightIcon from '@jetbrains/icons/chevron-right';
 
-import type {DiffModel, LoadStatus, ViewOptions} from './selection';
+import type {DiffModel, LoadStatus, ViewOptions} from './types';
+import './diff-pane.css';
 
 /**
  * Map the diff viewer's palette onto Ring UI variables so the colors follow YouTrack's theme.
@@ -69,9 +70,13 @@ interface DiffPaneProps {
   viewOptions: ViewOptions;
   sidebarCollapsed: boolean;
   dark: boolean;
+  /** Shown when nothing is selected; defaults to the version-list wording. */
+  emptyMessage?: string;
   onViewOptionsChange(patch: Partial<ViewOptions>): void;
   onExpandSidebar(): void;
 }
+
+const DEFAULT_EMPTY_MESSAGE = 'Select a version on the left to see its change.';
 
 const DiffPaneComponent = ({
   diff,
@@ -79,6 +84,7 @@ const DiffPaneComponent = ({
   viewOptions,
   sidebarCollapsed,
   dark,
+  emptyMessage = DEFAULT_EMPTY_MESSAGE,
   onViewOptionsChange,
   onExpandSidebar
 }: DiffPaneProps) => {
@@ -101,7 +107,7 @@ const DiffPaneComponent = ({
       return null;
     }
     if (!diff) {
-      return <div className="diff-pane__state"><Text info>{'Select a version on the left to see its change.'}</Text></div>;
+      return <div className="diff-pane__state"><Text info>{emptyMessage}</Text></div>;
     }
     if (diff.mode === 'initial') {
       return (

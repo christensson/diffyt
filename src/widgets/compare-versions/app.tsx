@@ -2,12 +2,12 @@ import React, {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import Theme, {ThemeProvider} from '@jetbrains/ring-ui-built/components/global/theme';
 
 import {createComponentLogger} from '@/common/utils/logger';
-import {fetchFieldActivities, fetchIssueSnapshot, fetchOldestRemoved, fetchTextActivities} from './api';
+import {fetchFieldActivities, fetchIssueSnapshot, fetchOldestRemoved, fetchTextActivities} from '@/common/compare/api';
 import {type Part, type Version, buildVersions, versionsFor} from './versions';
 import {type LoadStatus, type ViewOptions, deriveDiff, toggleSelection} from './selection';
-import {useDarkTheme} from './use-dark-theme';
+import {useDarkTheme} from '@/common/compare/use-dark-theme';
 import {VersionList} from './version-list';
-import {DiffPane} from './diff-pane';
+import {DiffPane} from '@/common/compare/diff-pane';
 
 const host = await YTApp.register();
 const logger = createComponentLogger('compare-versions');

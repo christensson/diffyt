@@ -1,0 +1,67 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  color: var(--ring-text-color);
+  background-color: var(--ring-content-background-color);
+  font-family: var(--ring-font-family);
+  font-size: var(--ring-font-size);
+  line-height: var(--ring-line-height);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Search field + mode tabs on one row above the diff. */
+.compare-header {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ring-unit) * 2);
+  padding: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2);
+  border-bottom: 1px solid var(--ring-line-color);
+  background-color: var(--ring-sidebar-background-color);
+}
+
+.compare-header__current {
+  flex: 0 0 auto;
+  max-width: calc(var(--ring-unit) * 40);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-header__search {
+  flex: 1 1 auto;
+  min-width: calc(var(--ring-unit) * 30);
+}
+
+.compare-header__modes {
+  flex: 0 0 auto;
+}
+
+.compare-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.compare-state {
+  display: flex;
+  align-items: center;
+  gap: var(--ring-unit);
+  padding: calc(var(--ring-unit) * 3);
+}
+
+.compare-state--error {
+  color: var(--ring-error-color);
+}

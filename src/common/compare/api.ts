@@ -76,6 +76,14 @@ export interface SnapshotField {
   value: FieldValue;
 }
 
+/** Minimal issue reference used for search results and titles. */
+export interface IssueRef {
+  id: string;
+  idReadable: string;
+  summary: string;
+  project: string | null;
+}
+
 export interface IssueSnapshot {
   created: number;
   reporter: ActivityAuthor | null;
@@ -217,4 +225,30 @@ export async function fetchIssueSnapshot(host: HostAPI, issueId: string): Promis
     description: asText(raw.description) ?? '',
     fields
   };
+}
+
+const ISSUE_REF_FIELDS = 'id,idReadable,summary,project(shortName)';
+const SEARCH_LIMIT = 15;
+
+const toIssueRef = (raw: Raw): IssueRef => ({
+  id: String(raw.id),
+  idReadable: asText(raw.idReadable) ?? String(raw.id),
+  summary: asText(raw.summary) ?? '',
+  project: asText((raw.project as Raw | null | undefined)?.shortName) ?? null
+});
+
+/** The issue's readable id and summary. */
+export async function fetchIssueRef(host: HostAPI, issueId: string): Promise<IssueRef> {
+  const raw = ((await host.fetchYouTrack(`issues/${encodeURIComponent(issueId)}?fields=${ISSUE_REF_FIELDS}`, {})) ?? {}) as Raw;
+  return toIssueRef(raw);
+}
+
+/** Runs a YouTrack search query and returns matching issues, excluding `excludeId`. */
+export async function searchIssues(host: HostAPI, query: string, excludeId: string): Promise<IssueRef[]> {
+  const params = new URLSearchParams({query, fields: ISSUE_REF_FIELDS, $top: String(SEARCH_LIMIT)});
+  const response = await host.fetchYouTrack(`issues?${params.toString()}`, {});
+  if (!Array.isArray(response)) {
+    return [];
+  }
+  return (response as Raw[]).map(toIssueRef).filter(issue => issue.id !== excludeId);
 }

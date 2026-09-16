@@ -1,10 +1,18 @@
 # Diffyt
 
-A YouTrack app that compares versions of an issue's **summary**, **description**, and **custom fields**.
+A YouTrack app that diffs issues: the versions of one issue over time, or two issues against each other.
 
-It adds a **Compare versions** item to the issue options menu ("…" in the issue toolbar). The widget
-lists every summary, description, and custom field change from the issue's activity stream and shows a
-line-by-line diff, inline or side by side, with optional word-level highlighting.
+It adds two items to the issue options menu ("…" in the issue toolbar):
+
+- **Compare versions** lists every summary, description, and custom field change from the issue's
+  activity stream and shows a line-by-line diff, inline or side by side, with optional word-level
+  highlighting.
+- **Compare to other** diffs the current issue against another issue picked through a search field.
+  The search matches issue IDs and summary text. Two modes: **Content** (summary and description,
+  opened first) and **Fields** (all custom fields as one YAML-style document). Only the latest state
+  of both issues is compared.
+
+### Compare versions
 
 - Every version is the **complete issue state** after one save; v1 is the state at creation.
 - Choose a part to compare: **Content** (summary and description) or **Fields** (all custom fields
@@ -12,7 +20,7 @@ line-by-line diff, inline or side by side, with optional word-level highlighting
 - Select **one** version to see what changed in it, or tick **two** to diff them directly.
 - Collapse the version list to give the diff the full width.
 
-The widget is frontend only: it calls the YouTrack REST API
+Both widgets are frontend only: they call the YouTrack REST API
 (`GET /api/issues/{id}/activities` for the `DescriptionCategory`, `SummaryCategory`, and
 `CustomFieldCategory` categories) through the Host API. There is no app backend, no workflows, and no settings.
 
@@ -49,18 +57,28 @@ issue in that project and pick **Compare versions** from the "…" menu.
 manifest.json                     # App manifest: one ISSUE_OPTIONS_MENU_ITEM widget
 public/icon.svg                   # App icon
 src/
-├── common/utils/logger.ts        # Frontend logger
-└── widgets/compare-versions/
-    ├── index.html / index.tsx    # Widget entry (Ring UI styles, React root)
-    ├── app.tsx                   # Host registration, data loading, state
-    ├── api.ts                    # Activity item types + paginated fetch via host.fetchYouTrack
-    ├── versions.ts               # Builds the timeline of full issue states (v1 + one per save)
-    ├── field-values.ts           # Custom field value presentation and multi-value set arithmetic
-    ├── selection.ts              # Pure helpers: selection rules, diff derivation, formatting
-    ├── version-list.tsx          # Left column: filter, version rows, checkboxes
-    ├── diff-pane.tsx             # Toolbar + react-diff-viewer-continued
-    ├── use-dark-theme.ts         # Dark-mode detection inside the widget iframe
-    ├── app.css                   # Layout (Ring UI CSS variables only)
+├── common/
+│   ├── utils/logger.ts           # Frontend logger
+│   └── compare/                  # Shared by both widgets
+│       ├── api.ts                # REST types + fetches (activities, snapshot, issue search)
+│       ├── field-values.ts       # Custom field value presentation and multi-value set arithmetic
+│       ├── issue-state.ts        # Field catalogue and Content/Fields text rendering
+│       ├── diff-pane.tsx/.css    # Toolbar + react-diff-viewer-continued
+│       ├── use-dark-theme.ts     # Dark-mode detection inside the widget iframe
+│       └── types.ts              # LoadStatus, ViewOptions, DiffModel
+├── widgets/compare-versions/
+│   ├── index.html / index.tsx    # Widget entry (Ring UI styles, React root)
+│   ├── app.tsx                   # Host registration, data loading, state
+│   ├── versions.ts               # Builds the timeline of full issue states (v1 + one per save)
+│   ├── selection.ts              # Selection rules, diff derivation, formatting
+│   ├── version-list.tsx          # Left column: part tabs, version rows, checkboxes
+│   ├── app.css                   # Layout (Ring UI CSS variables only)
+│   └── widget-icon.svg
+└── widgets/compare-issues/
+    ├── index.html / index.tsx    # Widget entry
+    ├── app.tsx                   # Current issue + picked issue → Content/Fields diff
+    ├── issue-search.tsx          # Ring UI Select with server-side issue search
+    ├── app.css
     └── widget-icon.svg
 ```
 
@@ -78,7 +96,15 @@ src/
 | `npm run dev` | Upload a dev bundle that loads from `localhost:9000`, then start Vite with HMR |
 | `npm run pack` | Create `diffyt.zip` for manual upload |
 
-## How the diff is derived
+## Compare to other
+
+The search field runs a YouTrack search query. Text that looks like an issue ID (`ABC-12` or a bare
+number) is searched with `issue id:`; other text is searched in summaries with `summary:`, falling back
+to a free-text search when that finds nothing. The current issue is excluded from the results. After a
+pick, both issues' current state is loaded and diffed, current issue on the left. The Fields document
+covers the union of both issues' custom fields, in the current issue's project order first.
+
+## How the versions diff is derived
 
 All Summary, Description, and custom field activity items are sorted by time and traversed to build a
 timeline of **complete issue states**. Items with the same timestamp were saved together and form one
