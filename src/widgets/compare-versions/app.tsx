@@ -3,16 +3,8 @@ import Theme, {ThemeProvider} from '@jetbrains/ring-ui-built/components/global/t
 
 import {createComponentLogger} from '@/common/utils/logger';
 import {fetchFieldActivities, fetchIssueSnapshot, fetchOldestRemoved, fetchTextActivities} from './api';
-import {type Version, buildVersions} from './versions';
-import {
-  type Filter,
-  type LoadStatus,
-  type ViewOptions,
-  deriveDiff,
-  filterItems,
-  lockedKind,
-  toggleSelection
-} from './selection';
+import {type Part, type Version, buildVersions, versionsFor} from './versions';
+import {type LoadStatus, type ViewOptions, deriveDiff, toggleSelection} from './selection';
 import {useDarkTheme} from './use-dark-theme';
 import {VersionList} from './version-list';
 import {DiffPane} from './diff-pane';
@@ -23,6 +15,9 @@ const issueId = YTApp.entity?.id;
 const locale = YTApp.locale;
 
 const DEFAULT_VIEW_OPTIONS: ViewOptions = {splitView: true, wordDiff: true, showDiffOnly: false};
+const DEFAULT_PART: Part = 'Content';
+
+const newestId = (versions: Version[]): string[] => (versions.length > 0 ? [versions[0].id] : []);
 
 /** Auxiliary requests only enrich the list; a failure is logged and replaced by a fallback value. */
 const warnAnd = <T,>(what: string, fallback: T) => (error: unknown): T => {
@@ -35,7 +30,7 @@ const AppComponent: React.FunctionComponent = () => {
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [part, setPart] = useState<Part>(DEFAULT_PART);
   const [viewOptions, setViewOptions] = useState<ViewOptions>(DEFAULT_VIEW_OPTIONS);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const dark = useDarkTheme();
@@ -67,8 +62,8 @@ const AppComponent: React.FunctionComponent = () => {
           locale
         );
         setVersions(result);
-        // Preselect the newest version so the dialog never opens empty.
-        setSelectedIds(result.length > 0 ? [result[0].id] : []);
+        // Preselect the newest version of the default part so the dialog never opens empty.
+        setSelectedIds(newestId(versionsFor(result, DEFAULT_PART)));
         setStatus('ready');
       })
       .catch((error: unknown) => {
@@ -85,13 +80,16 @@ const AppComponent: React.FunctionComponent = () => {
     };
   }, []);
 
-  const visibleVersions = useMemo(() => filterItems(versions, filter), [versions, filter]);
-  const diff = useMemo(() => deriveDiff(versions, selectedIds, locale), [versions, selectedIds]);
-  const selectionKind = useMemo(() => lockedKind(versions, selectedIds), [versions, selectedIds]);
+  const visibleVersions = useMemo(() => versionsFor(versions, part), [versions, part]);
+  const diff = useMemo(() => deriveDiff(visibleVersions, selectedIds, part, locale), [visibleVersions, selectedIds, part]);
 
   const handleSelectSingle = useCallback((id: string) => setSelectedIds([id]), []);
-  const handleToggle = useCallback(
-    (id: string) => setSelectedIds(previous => toggleSelection(previous, id, versions)),
+  const handleToggle = useCallback((id: string) => setSelectedIds(previous => toggleSelection(previous, id)), []);
+  const handlePartChange = useCallback(
+    (next: Part) => {
+      setPart(next);
+      setSelectedIds(newestId(versionsFor(versions, next)));
+    },
     [versions]
   );
   const handleViewOptionsChange = useCallback(
@@ -109,14 +107,12 @@ const AppComponent: React.FunctionComponent = () => {
       {!sidebarCollapsed && (
         <VersionList
           versions={visibleVersions}
-          totalCount={versions.length}
           status={status}
           errorMessage={errorMessage}
           selectedIds={selectedIds}
-          lockedKind={selectionKind}
-          filter={filter}
+          part={part}
           locale={locale}
-          onFilterChange={setFilter}
+          onPartChange={handlePartChange}
           onSelectSingle={handleSelectSingle}
           onToggle={handleToggle}
           onCollapse={collapseSidebar}

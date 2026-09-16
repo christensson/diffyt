@@ -67,11 +67,21 @@ export interface OldestRemoved {
   removed: string | null;
 }
 
+/** One custom field of the issue as it is now, in project order. */
+export interface SnapshotField {
+  /** CustomField id (matches `FieldInfo.customField.id` in activity items). */
+  id: string;
+  label: string;
+  fieldType: {id: string; isMultiValue?: boolean} | null;
+  value: FieldValue;
+}
+
 export interface IssueSnapshot {
   created: number;
   reporter: ActivityAuthor | null;
-  /** Current custom field values keyed by CustomField id. */
-  fields: Record<string, FieldValue>;
+  summary: string;
+  description: string;
+  fields: SnapshotField[];
 }
 
 const TEXT_CATEGORIES = 'DescriptionCategory,SummaryCategory';
@@ -175,26 +185,36 @@ export async function fetchOldestRemoved(
   return {id: String(raw.id), removed: asText(raw.removed)};
 }
 
-/** Creation time, reporter, and the current custom field values (the starting point for field history). */
+interface RawProjectCustomField {
+  field?: {id?: string; name?: string; fieldType?: {id: string; isMultiValue?: boolean} | null};
+}
+
+/** The issue as it is now: creation info, current texts, and current custom field values in project order. */
 export async function fetchIssueSnapshot(host: HostAPI, issueId: string): Promise<IssueSnapshot> {
   const url =
-    `issues/${encodeURIComponent(issueId)}?fields=created,reporter(id,login,name,fullName),` +
-    `customFields(id,name,projectCustomField(field(id)),value(${VALUE_FIELDS}))`;
+    `issues/${encodeURIComponent(issueId)}?fields=created,reporter(id,login,name,fullName),summary,description,` +
+    `customFields(id,name,projectCustomField(field(id,name,fieldType(id,isMultiValue))),value(${VALUE_FIELDS}))`;
   const raw = ((await host.fetchYouTrack(url, {})) ?? {}) as Raw;
 
-  const fields: Record<string, FieldValue> = {};
+  const fields: SnapshotField[] = [];
   const customFields = Array.isArray(raw.customFields) ? (raw.customFields as Raw[]) : [];
   for (const customField of customFields) {
-    const project = customField.projectCustomField as {field?: {id?: string}} | undefined;
-    const fieldId = project?.field?.id;
-    if (fieldId) {
-      fields[fieldId] = (customField.value as FieldValue | undefined) ?? null;
+    const field = (customField.projectCustomField as RawProjectCustomField | undefined)?.field;
+    if (field?.id) {
+      fields.push({
+        id: field.id,
+        label: field.name ?? asText(customField.name) ?? field.id,
+        fieldType: field.fieldType ?? null,
+        value: (customField.value as FieldValue | undefined) ?? null
+      });
     }
   }
 
   return {
     created: Number(raw.created ?? 0),
     reporter: (raw.reporter as ActivityAuthor | null | undefined) ?? null,
+    summary: asText(raw.summary) ?? '',
+    description: asText(raw.description) ?? '',
     fields
   };
 }

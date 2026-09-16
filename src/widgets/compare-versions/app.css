@@ -107,7 +107,7 @@ body {
 .version-row__body {
   display: grid;
   flex: 1;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--ring-unit);
   align-items: baseline;
   min-width: 0;
@@ -128,7 +128,10 @@ body {
 }
 
 .version-row__kind {
+  overflow: hidden;
   font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .version-row__meta {

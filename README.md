@@ -6,9 +6,10 @@ It adds a **Compare versions** item to the issue options menu ("…" in the issu
 lists every summary, description, and custom field change from the issue's activity stream and shows a
 line-by-line diff, inline or side by side, with optional word-level highlighting.
 
-- Select **one** version to see what changed in it compared to the previous version.
-- Tick **two** versions of the same field to diff them directly, including the initial content.
-- Filter the list by **All | Summary | Description | Fields**.
+- Every version is the **complete issue state** after one save; v1 is the state at creation.
+- Choose a part to compare: **Content** (summary and description) or **Fields** (all custom fields
+  as one YAML-style document). The list shows the versions that changed that part, plus v1.
+- Select **one** version to see what changed in it, or tick **two** to diff them directly.
 - Collapse the version list to give the diff the full width.
 
 The widget is frontend only: it calls the YouTrack REST API
@@ -53,7 +54,7 @@ src/
     ├── index.html / index.tsx    # Widget entry (Ring UI styles, React root)
     ├── app.tsx                   # Host registration, data loading, state
     ├── api.ts                    # Activity item types + paginated fetch via host.fetchYouTrack
-    ├── versions.ts               # Builds version streams (incl. v1 and custom field state reconstruction)
+    ├── versions.ts               # Builds the timeline of full issue states (v1 + one per save)
     ├── field-values.ts           # Custom field value presentation and multi-value set arithmetic
     ├── selection.ts              # Pure helpers: selection rules, diff derivation, formatting
     ├── version-list.tsx          # Left column: filter, version rows, checkboxes
@@ -79,41 +80,51 @@ src/
 
 ## How the diff is derived
 
-The list shows **versions** of a field, not raw changes. Every field (Summary, Description, and each
-custom field) is its own version stream numbered v1, v2, …; two versions can only be compared within
-one stream.
+All Summary, Description, and custom field activity items are sorted by time and traversed to build a
+timeline of **complete issue states**. Items with the same timestamp were saved together and form one
+version, labelled with everything it changed (e.g. "Summary, Priority"). v1 is the state at creation,
+dated with the issue's creation time and reporter.
 
-**Summary and Description.** Each activity item holds the text after the change in `added`, so every
-item becomes one version. The state before the oldest change is taken from that item's `removed` and
-shown as v1, dated with the issue's creation time and reporter. If the oldest change started from an
-empty field, that change itself is v1 and no extra row is added.
+Each version holds two parts, and the **Content | Fields** tabs pick which part is diffed. A tab
+lists only the versions that changed its part (plus v1); version numbers are global, so a tab may show
+v1, v3, v7. Because each version is a full state, any two picks diff correctly.
 
-**Custom fields.** Items of `CustomFieldCategory` carry the values that were added and removed. For
-multi-value fields these are only the changed values, so the full state of every version is
-reconstructed by starting from the issue's current field values and walking the changes backwards
-(`before = after − added + removed`). If the current values cannot be loaded, states are built forwards
-from the oldest item's `removed`. Versions are rendered as text so they can be diffed:
+The Content part is the summary on the first line, a blank line, `Description:`, and the description:
+
+```
+Start button stays grey after restart
+
+Description:
+Intro paragraph about the feature.
+…
+```
+
+- Summary and Description activity items hold the text after the change in `added`; the text at
+  creation is the oldest item's `removed`, or the current text when the field never changed.
+- Custom field items carry the values added and removed. For multi-value fields these are only the
+  changed values, so states are reconstructed by starting from the issue's current field values and
+  walking backwards (`before = after − added + removed`). Without current values, states are built
+  forwards from the oldest item's `removed`.
+- The Fields part lists every custom field of the issue in project order, including unchanged ones
+  (they fold away with "Only changes"), plus fields that appear in history but no longer exist:
 
 ```
 Priority: Critical
-
 Subsystems:
 - UI
 - API
+Due Date: Oct 1, 2026
+Type: Bug
 ```
 
-Date fields are formatted as dates, period fields use their presentation, and an empty field renders
-as just `Field:`.
-
-- One selected version: diff against the previous version of the same field. v1 has no predecessor,
+- One selected version: diff against the previous version listed in the tab. v1 has no predecessor,
   so its text is shown as is.
 - Two selected versions: diff between them, oldest on the left. The first pick is the baseline; a
-  third pick replaces the second. Picking v1 and the newest version shows the whole history of the
-  field in one diff.
+  third pick replaces the second.
 
 Requests, all in parallel: the Summary/Description list with `added` only (pages of 42), the custom
 field list with `added` and `removed`, the oldest Summary and Description items with `removed`, and the
-issue's `created`, `reporter`, and current `customFields`.
+issue's `created`, `reporter`, `summary`, `description`, and current `customFields`.
 
 ## Ideas for later
 

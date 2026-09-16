@@ -1,85 +1,92 @@
 import type {ActivityAuthor, ActivityItem, FieldActivityItem, FieldInfo, IssueSnapshot, OldestRemoved} from './api';
 import {type FieldItemValue, formatFieldText, isMultiValueType, stateAfter, stateBefore, toList} from './field-values';
 
+/** The two views of a version; the list is filtered to versions that changed the selected part. */
+export type Part = 'Content' | 'Fields';
+export const PARTS: readonly Part[] = ['Content', 'Fields'];
+
 export type TextKind = 'Summary' | 'Description';
-export const TEXT_KINDS: readonly TextKind[] = ['Summary', 'Description'];
 
-/** Custom fields get one version stream each, keyed `field:<CustomField id>`. */
-export const FIELD_KIND_PREFIX = 'field:';
-export const isFieldKind = (kind: string): boolean => kind.startsWith(FIELD_KIND_PREFIX);
-
-/** One state of a field: the content after a change, or the content before the oldest change (v1). */
+/** The complete issue state after one save (all activity items sharing a timestamp), or at creation (v1). */
 export interface Version {
-  /** Activity id, or `initial-<kind>` for the synthetic first version. */
+  /** First activity id of the group, or `initial` for the creation state. */
   id: string;
-  /** `Summary`, `Description`, or `field:<id>`; two versions can only be compared within one kind. */
-  kind: string;
-  /** Display name: the text field name or the custom field presentation. */
-  label: string;
-  /** 1-based per kind. */
+  /** 1-based position in the timeline; global, so a version keeps its number in every part. */
   number: number;
   timestamp: number | null;
   author: ActivityAuthor | null;
-  text: string;
   isInitial: boolean;
+  changedParts: ReadonlySet<Part>;
+  /** "Created" for v1, otherwise the changed names, e.g. "Summary, Priority". */
+  label: string;
+  summary: string;
+  description: string;
+  /** Summary on the first line, then a blank line, `Description:`, and the description. */
+  contentText: string;
+  /** YAML-style document of every custom field in project order. */
+  fieldsText: string;
 }
 
 export type OldestRemovedByKind = Record<TextKind, OldestRemoved | null>;
 
-/** Date and author for the synthetic first version. */
-export interface VersionMeta {
-  created: number;
-  reporter: ActivityAuthor | null;
-}
-
-interface VersionSeed {
-  id: string;
-  timestamp: number | null;
-  author: ActivityAuthor | null;
-  text: string;
-}
-
 export const kindOfItem = (item: ActivityItem): TextKind =>
   (item.category.id === 'SummaryCategory' ? 'Summary' : 'Description');
 
-/**
- * Numbers the seeds (ascending) and prepends a synthetic v1 holding `before` when it has content.
- * Without content before the oldest change, the oldest change is itself v1.
- */
-const assemble = (kind: string, label: string, before: string, seeds: VersionSeed[], meta: VersionMeta | null): Version[] => {
-  const versions: Version[] = [];
-  if (before !== '') {
-    versions.push({
-      id: `initial-${kind}`,
-      kind,
-      label,
-      number: 1,
-      timestamp: meta?.created ?? null,
-      author: meta?.reporter ?? null,
-      text: before,
-      isInitial: true
-    });
-  }
-  for (const seed of seeds) {
-    versions.push({...seed, kind, label, number: versions.length + 1, isInitial: versions.length === 0});
-  }
-  return versions;
-};
+export const textFor = (version: Version, part: Part): string =>
+  (part === 'Content' ? version.contentText : version.fieldsText);
 
-const buildTextVersions = (
-  kind: TextKind,
-  items: ActivityItem[],
-  oldestRemoved: OldestRemoved | null,
-  meta: VersionMeta | null
-): Version[] => {
-  const ascending = items.filter(item => kindOfItem(item) === kind).sort((a, b) => a.timestamp - b.timestamp);
-  if (ascending.length === 0) {
-    return [];
+const renderContent = (summary: string, description: string): string =>
+  `${summary}\n\nDescription:\n${description}`;
+
+/** Versions relevant for a part: those that changed it, plus the creation state. */
+export const versionsFor = (versions: Version[], part: Part): Version[] =>
+  versions.filter(version => version.isInitial || version.changedParts.has(part));
+
+interface CatalogueEntry {
+  id: string;
+  label: string;
+  isMulti: boolean;
+  typeId: string;
+}
+
+interface FieldTimeline {
+  initial: FieldItemValue[];
+  /** Values of the field after each of its activity items. */
+  afterById: Map<string, FieldItemValue[]>;
+}
+
+const byTimestampAsc = <T extends {timestamp: number}>(a: T, b: T): number => a.timestamp - b.timestamp;
+
+const fieldKey = (field: FieldInfo): string => field.customField?.id ?? field.id;
+
+const hasField = (item: FieldActivityItem): item is FieldActivityItem & {field: FieldInfo} => item.field !== null;
+
+/** All custom fields to show: the issue's current fields in project order, then fields only seen in history. */
+const buildCatalogue = (snapshot: IssueSnapshot | null, fieldItems: FieldActivityItem[]): CatalogueEntry[] => {
+  const entries: CatalogueEntry[] = (snapshot?.fields ?? []).map(field => ({
+    id: field.id,
+    label: field.label,
+    isMulti: isMultiValueType(field.fieldType),
+    typeId: field.fieldType?.id ?? ''
+  }));
+  const seen = new Set(entries.map(entry => entry.id));
+
+  const extra: CatalogueEntry[] = [];
+  for (const item of fieldItems.filter(hasField)) {
+    const id = fieldKey(item.field);
+    if (!seen.has(id)) {
+      seen.add(id);
+      const fieldType = item.field.customField?.fieldType ?? null;
+      extra.push({
+        id,
+        label: item.field.presentation || item.field.name || id,
+        isMulti: isMultiValueType(fieldType),
+        typeId: fieldType?.id ?? ''
+      });
+    }
   }
-  // Only trust the separately fetched `removed` if it belongs to the same oldest item.
-  const before = oldestRemoved !== null && oldestRemoved.id === ascending[0].id ? oldestRemoved.removed ?? '' : '';
-  const seeds = ascending.map(item => ({id: item.id, timestamp: item.timestamp, author: item.author, text: item.added ?? ''}));
-  return assemble(kind, kind, before, seeds, meta);
+  extra.sort((a, b) => a.label.localeCompare(b.label));
+  return [...entries, ...extra];
 };
 
 interface FieldStates {
@@ -89,7 +96,7 @@ interface FieldStates {
 }
 
 /**
- * Reconstructs the field states. With the current value known, walk backwards (exact, also for
+ * Reconstructs one field's states. With the current value known, walk backwards (exact, also for
  * multi-value fields whose items only carry the changed values). Otherwise walk forwards from the
  * oldest item's `removed`.
  */
@@ -118,57 +125,83 @@ const buildFieldStates = (
   return {before, after};
 };
 
-const fieldKey = (field: FieldInfo): string => field.customField?.id ?? field.id;
+const buildFieldTimelines = (
+  catalogue: CatalogueEntry[],
+  fieldItems: FieldActivityItem[],
+  snapshot: IssueSnapshot | null
+): Map<string, FieldTimeline> => {
+  const itemsByField = new Map<string, FieldActivityItem[]>();
+  for (const item of fieldItems.filter(hasField)) {
+    const id = fieldKey(item.field);
+    itemsByField.set(id, [...(itemsByField.get(id) ?? []), item]);
+  }
+  const currentById = new Map((snapshot?.fields ?? []).map(field => [field.id, toList(field.value)]));
 
-const buildOneFieldVersions = (
-  key: string,
-  group: FieldActivityItem[],
-  snapshot: IssueSnapshot | null,
-  locale: string | undefined
-): Version[] => {
-  const ascending = [...group].sort((a, b) => a.timestamp - b.timestamp);
-  const field = ascending[0].field as FieldInfo;
-  const fieldType = field.customField?.fieldType ?? null;
-  const isMulti = isMultiValueType(fieldType);
-  const typeId = fieldType?.id ?? '';
-  const label = field.presentation || field.name || key;
-
-  const current = snapshot ? toList(snapshot.fields[key]) : null;
-  const {before, after} = buildFieldStates(ascending, current, isMulti);
-  const format = (values: FieldItemValue[]) => formatFieldText(label, values, isMulti, typeId, locale);
-
-  const seeds = ascending.map((item, index) => ({
-    id: item.id,
-    timestamp: item.timestamp,
-    author: item.author,
-    text: format(after[index])
+  return new Map(catalogue.map(entry => {
+    const items = [...(itemsByField.get(entry.id) ?? [])].sort(byTimestampAsc);
+    // With a snapshot, a field missing from it no longer exists on the issue, i.e. it is empty now.
+    const current = snapshot ? currentById.get(entry.id) ?? [] : null;
+    if (items.length === 0) {
+      return [entry.id, {initial: current ?? [], afterById: new Map()}];
+    }
+    const {before, after} = buildFieldStates(items, current, entry.isMulti);
+    return [entry.id, {initial: before, afterById: new Map(items.map((item, index) => [item.id, after[index]]))}];
   }));
-  return assemble(`${FIELD_KIND_PREFIX}${key}`, label, before.length === 0 ? '' : format(before), seeds, snapshot);
 };
 
-const buildFieldVersions = (items: FieldActivityItem[], snapshot: IssueSnapshot | null, locale: string | undefined): Version[] => {
-  const groups = new Map<string, FieldActivityItem[]>();
-  for (const item of items) {
-    if (item.field) {
-      const key = fieldKey(item.field);
-      groups.set(key, [...(groups.get(key) ?? []), item]);
+/** Text of Summary/Description at creation: the oldest change's `removed`, or the current text if never changed. */
+const initialText = (
+  kind: TextKind,
+  textItems: ActivityItem[],
+  oldestRemoved: OldestRemovedByKind,
+  snapshot: IssueSnapshot | null
+): string => {
+  const items = textItems.filter(item => kindOfItem(item) === kind).sort(byTimestampAsc);
+  if (items.length === 0) {
+    return (kind === 'Summary' ? snapshot?.summary : snapshot?.description) ?? '';
+  }
+  const oldest = oldestRemoved[kind];
+  // Only trust the separately fetched `removed` if it belongs to the same oldest item.
+  return oldest !== null && oldest.id === items[0].id ? oldest.removed ?? '' : '';
+};
+
+type Event = {kind: 'text'; item: ActivityItem} | {kind: 'field'; item: FieldActivityItem & {field: FieldInfo}};
+
+/** Consecutive events with the same timestamp were saved together and form one version. */
+const groupByTimestamp = (events: Event[]): Event[][] => {
+  const groups: Event[][] = [];
+  for (const event of events) {
+    const last = groups[groups.length - 1];
+    if (last && last[0].item.timestamp === event.item.timestamp) {
+      last.push(event);
+    } else {
+      groups.push([event]);
     }
   }
-  return [...groups.entries()].flatMap(([key, group]) => buildOneFieldVersions(key, group, snapshot, locale));
+  return groups;
 };
 
-const sortKey = (version: Version): number => version.timestamp ?? Number.NEGATIVE_INFINITY;
+interface IssueState {
+  summary: string;
+  description: string;
+  fields: Map<string, FieldItemValue[]>;
+}
 
-const byNewestFirst = (a: Version, b: Version): number => {
-  const keyA = sortKey(a);
-  const keyB = sortKey(b);
-  if (keyA === keyB) {
-    return 0;
+const renderFields = (state: IssueState, catalogue: CatalogueEntry[], locale: string | undefined): string =>
+  catalogue
+    .map(entry => formatFieldText(entry.label, state.fields.get(entry.id) ?? [], entry.isMulti, entry.typeId, locale))
+    .join('\n');
+
+const pushUnique = (list: string[], value: string): void => {
+  if (!list.includes(value)) {
+    list.push(value);
   }
-  return keyB > keyA ? 1 : -1;
 };
 
-/** Builds all version streams (Summary, Description, one per custom field) and merges them newest first. */
+/**
+ * Builds the timeline of complete issue states, newest first. v1 is the state at creation; every
+ * later version is the state after one save (all activity items sharing a timestamp).
+ */
 export function buildVersions(
   textItems: ActivityItem[],
   fieldItems: FieldActivityItem[],
@@ -176,6 +209,69 @@ export function buildVersions(
   snapshot: IssueSnapshot | null,
   locale: string | undefined
 ): Version[] {
-  const textVersions = TEXT_KINDS.flatMap(kind => buildTextVersions(kind, textItems, oldestRemoved[kind], snapshot));
-  return [...textVersions, ...buildFieldVersions(fieldItems, snapshot, locale)].sort(byNewestFirst);
+  const catalogue = buildCatalogue(snapshot, fieldItems);
+  const timelines = buildFieldTimelines(catalogue, fieldItems, snapshot);
+  const labelById = new Map(catalogue.map(entry => [entry.id, entry.label]));
+
+  const state: IssueState = {
+    summary: initialText('Summary', textItems, oldestRemoved, snapshot),
+    description: initialText('Description', textItems, oldestRemoved, snapshot),
+    fields: new Map([...timelines].map(([id, timeline]) => [id, timeline.initial]))
+  };
+
+  const versions: Version[] = [{
+    id: 'initial',
+    number: 1,
+    timestamp: snapshot?.created ?? null,
+    author: snapshot?.reporter ?? null,
+    isInitial: true,
+    changedParts: new Set(PARTS),
+    label: 'Created',
+    summary: state.summary,
+    description: state.description,
+    contentText: renderContent(state.summary, state.description),
+    fieldsText: renderFields(state, catalogue, locale)
+  }];
+
+  const events: Event[] = [
+    ...textItems.map((item): Event => ({kind: 'text', item})),
+    ...fieldItems.filter(hasField).map((item): Event => ({kind: 'field', item}))
+  ].sort((a, b) => byTimestampAsc(a.item, b.item));
+
+  for (const group of groupByTimestamp(events)) {
+    const changedParts = new Set<Part>();
+    const labels: string[] = [];
+    for (const event of group) {
+      if (event.kind === 'text') {
+        const kind = kindOfItem(event.item);
+        state[kind === 'Summary' ? 'summary' : 'description'] = event.item.added ?? '';
+        changedParts.add('Content');
+        pushUnique(labels, kind);
+      } else {
+        const id = fieldKey(event.item.field);
+        const after = timelines.get(id)?.afterById.get(event.item.id);
+        if (after) {
+          state.fields.set(id, after);
+        }
+        changedParts.add('Fields');
+        pushUnique(labels, labelById.get(id) ?? event.item.field.presentation);
+      }
+    }
+    const first = group[0].item;
+    versions.push({
+      id: first.id,
+      number: versions.length + 1,
+      timestamp: first.timestamp,
+      author: first.author,
+      isInitial: false,
+      changedParts,
+      label: labels.join(', '),
+      summary: state.summary,
+      description: state.description,
+      contentText: renderContent(state.summary, state.description),
+      fieldsText: renderFields(state, catalogue, locale)
+    });
+  }
+
+  return versions.reverse();
 }

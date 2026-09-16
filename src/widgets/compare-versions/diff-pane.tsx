@@ -107,7 +107,7 @@ const DiffPaneComponent = ({
       return (
         <div className="diff-pane__initial">
           <div className="diff-pane__initial-title">{diff.title}</div>
-          <Text info size={Text.Size.S}>{'First version — nothing earlier to compare with.'}</Text>
+          <Text info size={Text.Size.S}>{'State at creation — nothing earlier to compare with.'}</Text>
           {diff.text === ''
             ? <Text info>{'The field was empty.'}</Text>
             : <pre className="diff-pane__plain">{diff.text}</pre>}
