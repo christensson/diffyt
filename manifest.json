@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "name": "diffyt",
   "title": "Diffyt",
-  "description": "Compare versions of issues and articles, or compare two of them, with a line-by-line diff.",
+  "description": "Compare versions of tickets and articles, or compare two of them, with a line-by-line diff.",
   "version": "0.1.0",
   "vendor": {
     "name": "Marcus Christensson",
@@ -27,8 +27,8 @@
     },
     {
       "key": "compare-issues",
-      "name": "Compare to other",
-      "description": "Compare this issue with another issue",
+      "name": "Compare with another ticket",
+      "description": "Compare this ticket with another ticket",
       "indexPath": "compare-issues/index.html",
       "iconPath": "compare-issues/widget-icon.svg",
       "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
@@ -42,7 +42,7 @@
     },
     {
       "key": "article-versions",
-      "name": "Compare article versions",
+      "name": "Compare versions",
       "description": "Compare title and content versions of an article",
       "indexPath": "article-versions/index.html",
       "iconPath": "article-versions/widget-icon.svg",
@@ -57,7 +57,7 @@
     },
     {
       "key": "article-compare",
-      "name": "Compare article to other",
+      "name": "Compare with another article",
       "description": "Compare this article with another article",
       "indexPath": "article-compare/index.html",
       "iconPath": "article-compare/widget-icon.svg",

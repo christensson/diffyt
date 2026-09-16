@@ -1,21 +1,22 @@
 # Diffyt
 
-A YouTrack app that diffs issues and knowledge base articles: the versions of one item over time, or
+A YouTrack app that diffs tickets and knowledge base articles: the versions of one item over time, or
 two items against each other.
 
-It adds two items to the issue options menu ("…" in the issue toolbar) and the same two to the article
-options menu:
+It adds two items to the ticket options menu ("…" in the issue toolbar) and two to the article options
+menu:
 
 - **Compare versions** lists every summary, description, and custom field change from the issue's
   activity stream and shows a line-by-line diff, inline or side by side, with optional word-level
   highlighting.
-- **Compare to other** diffs the current issue against another issue picked through a search field.
-  The search matches issue IDs and summary text. Two modes: **Content** (summary and description,
-  opened first) and **Fields** (all custom fields as one YAML-style document). Only the latest state
-  of both issues is compared.
-- **Compare article versions** and **Compare article to other** do the same for articles, diffing the
-  title and content only (articles have no custom fields, so there is no Fields mode). Article
-  history comes from the `ArticleSummaryCategory` and `ArticleDescriptionCategory` activities.
+- **Compare with another ticket** diffs the current issue against another one picked through a
+  search field. The search matches issue IDs and summary text. Two modes: **Content** (summary and
+  description, opened first) and **Fields** (all custom fields as one YAML-style document). Only the
+  latest state of both issues is compared.
+- **Compare versions** and **Compare with another article** in the article menu do the same for
+  articles, diffing the title and content only (articles have no custom fields, so there is no Fields
+  mode). Article history comes from the `ArticleSummaryCategory` and `ArticleDescriptionCategory`
+  activities.
 
 ### Compare versions
 
@@ -73,7 +74,7 @@ src/
 │       ├── issue-state.ts        # Field catalogue and Content/Fields text rendering
 │       ├── search-queries.ts     # Search plan for the "compare to other" field
 │       ├── versions-app.tsx/.css # "Compare versions" UI (version list + diff)
-│       ├── compare-app.tsx/.css  # "Compare to other" UI (search + diff)
+│       ├── compare-app.tsx/.css  # "Compare with another …" UI (search + diff)
 │       ├── version-list.tsx, entity-search.tsx, diff-pane.tsx/.css, use-dark-theme.ts, types.ts, base.css
 └── widgets/
     ├── compare-versions/         # Issue: VersionsApp with the ISSUE adapter
@@ -97,7 +98,7 @@ src/
 | `npm run dev` | Upload a dev bundle that loads from `localhost:9000`, then start Vite with HMR |
 | `npm run pack` | Create `diffyt.zip` for manual upload |
 
-## Compare to other
+## Compare with another ticket / article
 
 The search field runs a YouTrack search query. Text that looks like an issue ID (`ABC-12` or a bare
 number) is searched with `issue id:`; other text is searched in summaries with `summary:`, falling back
