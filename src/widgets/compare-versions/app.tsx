@@ -124,6 +124,7 @@ const AppComponent: React.FunctionComponent = () => {
         viewOptions={viewOptions}
         sidebarCollapsed={sidebarCollapsed}
         dark={dark}
+        yaml={part === 'Fields'}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={expandSidebar}
       />

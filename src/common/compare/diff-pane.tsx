@@ -72,6 +72,11 @@ interface DiffPaneProps {
   dark: boolean;
   /** Shown when nothing is selected; defaults to the version-list wording. */
   emptyMessage?: string;
+  /**
+   * Compare as YAML (structural equality check, then line diff). The viewer cannot word-diff in this
+   * mode, so word highlighting is disabled and its toggle hidden.
+   */
+  yaml?: boolean;
   onViewOptionsChange(patch: Partial<ViewOptions>): void;
   onExpandSidebar(): void;
 }
@@ -85,6 +90,7 @@ const DiffPaneComponent = ({
   sidebarCollapsed,
   dark,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
+  yaml = false,
   onViewOptionsChange,
   onExpandSidebar
 }: DiffPaneProps) => {
@@ -128,8 +134,8 @@ const DiffPaneComponent = ({
         oldValue={diff.oldText}
         newValue={diff.newText}
         splitView={viewOptions.splitView}
-        disableWordDiff={!viewOptions.wordDiff}
-        compareMethod={DiffMethod.WORDS_WITH_SPACE}
+        disableWordDiff={yaml || !viewOptions.wordDiff}
+        compareMethod={yaml ? DiffMethod.YAML : DiffMethod.WORDS_WITH_SPACE}
         showDiffOnly={viewOptions.showDiffOnly}
         useDarkTheme={dark}
         leftTitle={viewOptions.splitView ? diff.leftTitle : `${diff.leftTitle}   →   ${diff.rightTitle}`}
@@ -157,7 +163,9 @@ const DiffPaneComponent = ({
         </div>
         <div className="diff-pane__toolbar-end">
           <Toggle size={ToggleSize.Size14} checked={viewOptions.splitView} onChange={toggleSplit}>{'Side by side'}</Toggle>
-          <Toggle size={ToggleSize.Size14} checked={viewOptions.wordDiff} onChange={toggleWordDiff}>{'Word diff'}</Toggle>
+          {!yaml && (
+            <Toggle size={ToggleSize.Size14} checked={viewOptions.wordDiff} onChange={toggleWordDiff}>{'Word diff'}</Toggle>
+          )}
           <Toggle size={ToggleSize.Size14} checked={viewOptions.showDiffOnly} onChange={toggleDiffOnly}>{'Only changes'}</Toggle>
         </div>
       </header>

@@ -132,7 +132,9 @@ Intro paragraph about the feature.
   walking backwards (`before = after − added + removed`). Without current values, states are built
   forwards from the oldest item's `removed`.
 - The Fields part lists every custom field of the issue in project order, including unchanged ones
-  (they fold away with "Only changes"), plus fields that appear in history but no longer exist:
+  (they fold away with "Only changes"), plus fields that appear in history but no longer exist. The
+  document is compared with the diff viewer's YAML method, which is line-based, so word-level
+  highlighting is not available in that mode:
 
 ```
 Priority: Critical

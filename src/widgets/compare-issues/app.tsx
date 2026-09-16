@@ -152,6 +152,7 @@ const AppComponent: React.FunctionComponent = () => {
         viewOptions={viewOptions}
         sidebarCollapsed={false}
         dark={dark}
+        yaml={mode === 'Fields'}
         emptyMessage={`Search for an issue by ID or summary to compare with ${current.ref.idReadable}.`}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={noop}
