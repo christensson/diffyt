@@ -4,6 +4,7 @@ import Theme, {ThemeProvider} from '@jetbrains/ring-ui-built/components/global/t
 import {createComponentLogger} from '@/common/utils/logger';
 import {fetchFieldActivities, fetchIssueSnapshot, fetchOldestRemoved, fetchTextActivities} from '@/common/compare/api';
 import {type Part, type Version, buildVersions, versionsFor} from './versions';
+import {CONTENT_SECTION_MARKERS} from '@/common/compare/issue-state';
 import {type LoadStatus, type ViewOptions, deriveDiff, toggleSelection} from './selection';
 import {useDarkTheme} from '@/common/compare/use-dark-theme';
 import {VersionList} from './version-list';
@@ -125,6 +126,7 @@ const AppComponent: React.FunctionComponent = () => {
         sidebarCollapsed={sidebarCollapsed}
         dark={dark}
         yaml={part === 'Fields'}
+        sectionMarkers={part === 'Content' ? CONTENT_SECTION_MARKERS : undefined}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={expandSidebar}
       />

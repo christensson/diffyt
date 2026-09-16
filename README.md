@@ -115,9 +115,11 @@ Each version holds two parts, and the **Content | Fields** tabs pick which part 
 lists only the versions that changed its part (plus v1); version numbers are global, so a tab may show
 v1, v3, v7. Because each version is a full state, any two picks diff correctly.
 
-The Content part is the summary on the first line, a blank line, `Description:`, and the description:
+The Content part is a `Summary:` heading, the summary, a blank line, a `Description:` heading, and the
+description. The heading lines are rendered as section titles in the diff:
 
 ```
+Summary:
 Start button stays grey after restart
 
 Description:

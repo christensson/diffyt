@@ -6,6 +6,7 @@ import Toggle, {Size as ToggleSize} from '@jetbrains/ring-ui-built/components/to
 import chevronRightIcon from '@jetbrains/icons/chevron-right';
 
 import type {DiffModel, LoadStatus, ViewOptions} from './types';
+import {markerLineNumbers} from './issue-state';
 import './diff-pane.css';
 
 /**
@@ -29,8 +30,9 @@ const ringVariables = {
   removedGutterBackground: 'var(--ring-removed-subtle-background-color)',
   gutterBackground: 'var(--ring-sidebar-background-color)',
   gutterBackgroundDark: 'var(--ring-sidebar-background-color)',
-  highlightBackground: 'var(--ring-selected-background-color)',
-  highlightGutterBackground: 'var(--ring-selected-background-color)',
+  // Highlighted rows mark section headings, so keep them neutral rather than selection blue.
+  highlightBackground: 'var(--ring-sidebar-background-color)',
+  highlightGutterBackground: 'var(--ring-sidebar-background-color)',
   codeFoldGutterBackground: 'var(--ring-sidebar-background-color)',
   codeFoldBackground: 'var(--ring-sidebar-background-color)',
   emptyLineBackground: 'var(--ring-sidebar-background-color)',
@@ -64,6 +66,23 @@ const diffStyles = {
   }
 };
 
+type SectionProps = Pick<React.ComponentProps<typeof ReactDiffViewer>, 'renderContent' | 'highlightLines'>;
+
+/** Renders lines equal to one of `markers` as section headings and highlights their rows. */
+const sectionProps = (oldText: string, newText: string, markers: readonly string[] | undefined): SectionProps => {
+  if (!markers || markers.length === 0) {
+    return {};
+  }
+  return {
+    renderContent: (source: string) =>
+      <span className={markers.includes(source) ? 'diff-pane__section' : undefined}>{source}</span>,
+    highlightLines: markers.flatMap(marker => [
+      ...markerLineNumbers(oldText, marker).map(line => `L${line}`),
+      ...markerLineNumbers(newText, marker).map(line => `R${line}`)
+    ])
+  };
+};
+
 interface DiffPaneProps {
   diff: DiffModel | null;
   status: LoadStatus;
@@ -77,6 +96,8 @@ interface DiffPaneProps {
    * mode, so word highlighting is disabled and its toggle hidden.
    */
   yaml?: boolean;
+  /** Lines whose whole text equals one of these are rendered as section headings (e.g. "Description:"). */
+  sectionMarkers?: readonly string[];
   onViewOptionsChange(patch: Partial<ViewOptions>): void;
   onExpandSidebar(): void;
 }
@@ -91,6 +112,7 @@ const DiffPaneComponent = ({
   dark,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
   yaml = false,
+  sectionMarkers,
   onViewOptionsChange,
   onExpandSidebar
 }: DiffPaneProps) => {
@@ -143,6 +165,7 @@ const DiffPaneComponent = ({
         styles={diffStyles}
         disableWorker
         hideSummary
+        {...sectionProps(diff.oldText, diff.newText, sectionMarkers)}
       />
     );
   };

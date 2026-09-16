@@ -36,9 +36,18 @@ export const buildCatalogue = (snapshots: IssueSnapshot[]): CatalogueEntry[] =>
     .map(snapshot => snapshot.fields.map(entryFromSnapshotField))
     .reduce<CatalogueEntry[]>((catalogue, entries) => mergeCatalogue(catalogue, entries), []);
 
-/** Summary on the first line, then a blank line, `Description:`, and the description. */
+/** Section heading lines of the Content text. */
+export const CONTENT_SUMMARY_MARKER = 'Summary:';
+export const CONTENT_DESCRIPTION_MARKER = 'Description:';
+export const CONTENT_SECTION_MARKERS: readonly string[] = [CONTENT_SUMMARY_MARKER, CONTENT_DESCRIPTION_MARKER];
+
+/** `Summary:` heading, the summary, a blank line, `Description:` heading, and the description. */
 export const renderContent = (summary: string, description: string): string =>
-  `${summary}\n\nDescription:\n${description}`;
+  `${CONTENT_SUMMARY_MARKER}\n${summary}\n\n${CONTENT_DESCRIPTION_MARKER}\n${description}`;
+
+/** 1-based numbers of the lines whose whole text equals `marker`. */
+export const markerLineNumbers = (text: string, marker: string): number[] =>
+  text.split('\n').flatMap((line, index) => (line === marker ? [index + 1] : []));
 
 /** One `key: value` (or YAML list) entry per catalogue field. */
 export const renderFieldLines = (

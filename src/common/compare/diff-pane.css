@@ -69,3 +69,13 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Section heading line inside the Content diff (e.g. "Description:"), styled like a Ring UI h4. */
+.diff-pane__section {
+  color: var(--ring-secondary-color);
+  font-family: var(--ring-font-family);
+  font-size: var(--ring-font-size-smaller);
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}

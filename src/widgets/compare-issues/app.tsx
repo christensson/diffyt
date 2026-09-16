@@ -7,7 +7,7 @@ import Text from '@jetbrains/ring-ui-built/components/text/text';
 
 import {createComponentLogger} from '@/common/utils/logger';
 import {type IssueRef, type IssueSnapshot, fetchIssueRef, fetchIssueSnapshot} from '@/common/compare/api';
-import {buildCatalogue, renderContent, renderFieldsFor} from '@/common/compare/issue-state';
+import {CONTENT_SECTION_MARKERS, buildCatalogue, renderContent, renderFieldsFor} from '@/common/compare/issue-state';
 import type {DiffModel, ViewOptions} from '@/common/compare/types';
 import {useDarkTheme} from '@/common/compare/use-dark-theme';
 import {DiffPane} from '@/common/compare/diff-pane';
@@ -153,6 +153,7 @@ const AppComponent: React.FunctionComponent = () => {
         sidebarCollapsed={false}
         dark={dark}
         yaml={mode === 'Fields'}
+        sectionMarkers={mode === 'Content' ? CONTENT_SECTION_MARKERS : undefined}
         emptyMessage={`Search for an issue by ID or summary to compare with ${current.ref.idReadable}.`}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={noop}
