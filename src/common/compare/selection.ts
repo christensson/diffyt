@@ -1,8 +1,8 @@
-import type {ActivityAuthor} from '@/common/compare/api';
-import type {DiffModel} from '@/common/compare/types';
+import type {ActivityAuthor} from './api';
+import type {DiffModel} from './types';
 import {type Part, type Version, textFor} from './versions';
 
-export type {DiffModel, LoadStatus, ViewOptions} from '@/common/compare/types';
+export type {DiffModel, LoadStatus, ViewOptions} from './types';
 
 /** At most two versions can be selected: one shows its change, two show the diff between them. */
 export const MAX_SELECTED = 2;

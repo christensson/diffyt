@@ -1,4 +1,5 @@
-import type {IssueSnapshot, SnapshotField} from './api';
+import type {EntitySnapshot, SnapshotField} from './api';
+import type {EntityAdapter} from './entity';
 import {type FieldItemValue, formatFieldText, isMultiValueType, toList} from './field-values';
 
 /** One custom field to show in the Fields text, in display order. */
@@ -31,19 +32,19 @@ export const mergeCatalogue = (base: CatalogueEntry[], extra: CatalogueEntry[]):
 };
 
 /** Fields of the first snapshot in project order, then any extra fields of the others. */
-export const buildCatalogue = (snapshots: IssueSnapshot[]): CatalogueEntry[] =>
+export const buildCatalogue = (snapshots: EntitySnapshot[]): CatalogueEntry[] =>
   snapshots
     .map(snapshot => snapshot.fields.map(entryFromSnapshotField))
     .reduce<CatalogueEntry[]>((catalogue, entries) => mergeCatalogue(catalogue, entries), []);
 
 /** Section heading lines of the Content text. */
-export const CONTENT_SUMMARY_MARKER = 'Summary:';
-export const CONTENT_DESCRIPTION_MARKER = 'Description:';
-export const CONTENT_SECTION_MARKERS: readonly string[] = [CONTENT_SUMMARY_MARKER, CONTENT_DESCRIPTION_MARKER];
+export const SUMMARY_MARKER = 'Summary:';
+export const bodyMarker = (adapter: EntityAdapter): string => `${adapter.bodyLabel}:`;
+export const contentMarkers = (adapter: EntityAdapter): string[] => [SUMMARY_MARKER, bodyMarker(adapter)];
 
-/** `Summary:` heading, the summary, a blank line, `Description:` heading, and the description. */
-export const renderContent = (summary: string, description: string): string =>
-  `${CONTENT_SUMMARY_MARKER}\n${summary}\n\n${CONTENT_DESCRIPTION_MARKER}\n${description}`;
+/** `Summary:` heading, the summary, a blank line, the body heading, and the body text. */
+export const renderContent = (summary: string, body: string, adapter: EntityAdapter): string =>
+  `${SUMMARY_MARKER}\n${summary}\n\n${bodyMarker(adapter)}\n${body}`;
 
 /** 1-based numbers of the lines whose whole text equals `marker`. */
 export const markerLineNumbers = (text: string, marker: string): number[] =>
@@ -59,6 +60,6 @@ export const renderFieldLines = (
     .map(entry => formatFieldText(entry.label, values.get(entry.id) ?? [], entry.isMulti, entry.typeId, locale))
     .join('\n');
 
-/** The Fields text of an issue as it is now. */
-export const renderFieldsFor = (snapshot: IssueSnapshot, catalogue: CatalogueEntry[], locale: string | undefined): string =>
+/** The Fields text of an entity as it is now. */
+export const renderFieldsFor = (snapshot: EntitySnapshot, catalogue: CatalogueEntry[], locale: string | undefined): string =>
   renderFieldLines(new Map(snapshot.fields.map(field => [field.id, toList(field.value)])), catalogue, locale);

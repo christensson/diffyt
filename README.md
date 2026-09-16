@@ -1,8 +1,10 @@
 # Diffyt
 
-A YouTrack app that diffs issues: the versions of one issue over time, or two issues against each other.
+A YouTrack app that diffs issues and knowledge base articles: the versions of one item over time, or
+two items against each other.
 
-It adds two items to the issue options menu ("…" in the issue toolbar):
+It adds two items to the issue options menu ("…" in the issue toolbar) and the same two to the article
+options menu:
 
 - **Compare versions** lists every summary, description, and custom field change from the issue's
   activity stream and shows a line-by-line diff, inline or side by side, with optional word-level
@@ -11,6 +13,9 @@ It adds two items to the issue options menu ("…" in the issue toolbar):
   The search matches issue IDs and summary text. Two modes: **Content** (summary and description,
   opened first) and **Fields** (all custom fields as one YAML-style document). Only the latest state
   of both issues is compared.
+- **Compare article versions** and **Compare article to other** do the same for articles, diffing the
+  title and content only (articles have no custom fields, so there is no Fields mode). Article
+  history comes from the `ArticleSummaryCategory` and `ArticleDescriptionCategory` activities.
 
 ### Compare versions
 
@@ -20,7 +25,7 @@ It adds two items to the issue options menu ("…" in the issue toolbar):
 - Select **one** version to see what changed in it, or tick **two** to diff them directly.
 - Collapse the version list to give the diff the full width.
 
-Both widgets are frontend only: they call the YouTrack REST API
+All widgets are frontend only: they call the YouTrack REST API
 (`GET /api/issues/{id}/activities` for the `DescriptionCategory`, `SummaryCategory`, and
 `CustomFieldCategory` categories) through the Host API. There is no app backend, no workflows, and no settings.
 
@@ -59,27 +64,23 @@ public/icon.svg                   # App icon
 src/
 ├── common/
 │   ├── utils/logger.ts           # Frontend logger
-│   └── compare/                  # Shared by both widgets
-│       ├── api.ts                # REST types + fetches (activities, snapshot, issue search)
+│   └── compare/                  # Everything the four widgets share
+│       ├── entity.ts             # Issue/article adapter: REST base, categories, labels
+│       ├── api.ts                # REST types + fetches (activities, snapshot, search)
+│       ├── versions.ts           # Timeline of full entity states (v1 + one per save)
+│       ├── selection.ts          # Selection rules, diff derivation, formatting
 │       ├── field-values.ts       # Custom field value presentation and multi-value set arithmetic
 │       ├── issue-state.ts        # Field catalogue and Content/Fields text rendering
-│       ├── diff-pane.tsx/.css    # Toolbar + react-diff-viewer-continued
-│       ├── use-dark-theme.ts     # Dark-mode detection inside the widget iframe
-│       └── types.ts              # LoadStatus, ViewOptions, DiffModel
-├── widgets/compare-versions/
-│   ├── index.html / index.tsx    # Widget entry (Ring UI styles, React root)
-│   ├── app.tsx                   # Host registration, data loading, state
-│   ├── versions.ts               # Builds the timeline of full issue states (v1 + one per save)
-│   ├── selection.ts              # Selection rules, diff derivation, formatting
-│   ├── version-list.tsx          # Left column: part tabs, version rows, checkboxes
-│   ├── app.css                   # Layout (Ring UI CSS variables only)
-│   └── widget-icon.svg
-└── widgets/compare-issues/
-    ├── index.html / index.tsx    # Widget entry
-    ├── app.tsx                   # Current issue + picked issue → Content/Fields diff
-    ├── issue-search.tsx          # Ring UI Select with server-side issue search
-    ├── app.css
-    └── widget-icon.svg
+│       ├── search-queries.ts     # Search plan for the "compare to other" field
+│       ├── versions-app.tsx/.css # "Compare versions" UI (version list + diff)
+│       ├── compare-app.tsx/.css  # "Compare to other" UI (search + diff)
+│       ├── version-list.tsx, entity-search.tsx, diff-pane.tsx/.css, use-dark-theme.ts, types.ts, base.css
+└── widgets/
+    ├── compare-versions/         # Issue: VersionsApp with the ISSUE adapter
+    ├── compare-issues/           # Issue: CompareApp with the ISSUE adapter
+    ├── article-versions/         # Article: VersionsApp with the ARTICLE adapter
+    └── article-compare/          # Article: CompareApp with the ARTICLE adapter
+        └── index.html / index.tsx / app.tsx / widget-icon.svg
 ```
 
 ## Scripts

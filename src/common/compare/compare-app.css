@@ -1,18 +1,4 @@
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-}
-
-body {
-  overflow: hidden;
-  color: var(--ring-text-color);
-  background-color: var(--ring-content-background-color);
-  font-family: var(--ring-font-family);
-  font-size: var(--ring-font-size);
-  line-height: var(--ring-line-height);
-}
+/* Layout of the compare-to-other widget: header + diff. */
 
 .app {
   display: flex;

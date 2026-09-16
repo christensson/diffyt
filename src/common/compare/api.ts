@@ -1,6 +1,5 @@
 import type {HostAPI} from '../../../@types/globals';
-
-export type TextCategoryId = 'SummaryCategory' | 'DescriptionCategory';
+import type {EntityAdapter, TextKind} from './entity';
 
 export interface ActivityAuthor {
   id: string;
@@ -10,9 +9,9 @@ export interface ActivityAuthor {
 }
 
 /**
- * Summary/Description change (`SimpleValueActivityItem` / `TextMarkupActivityItem`).
- * Only `added` (the value after the change) is loaded for the full list; each item's `removed`
- * equals the previous item's `added`, so it is fetched once, for the oldest item only.
+ * Summary/body text change (`SimpleValueActivityItem` / `TextMarkupActivityItem`, or the Article
+ * variants). Only `added` (the value after the change) is loaded for the full list; each item's
+ * `removed` equals the previous item's `added`, so it is fetched once, for the oldest item only.
  */
 export interface ActivityItem {
   $type: string;
@@ -50,7 +49,7 @@ export interface FieldInfo {
   } | null;
 }
 
-/** Custom field change (`CustomFieldActivityItem` / `TextCustomFieldActivityItem`). */
+/** Custom field change (`CustomFieldActivityItem` / `TextCustomFieldActivityItem`). Issues only. */
 export interface FieldActivityItem {
   $type: string;
   id: string;
@@ -61,10 +60,18 @@ export interface FieldActivityItem {
   field: FieldInfo | null;
 }
 
-/** The oldest change of one category: its `removed` is the field's initial content. */
+/** The oldest change of one text kind: its `removed` is the text at creation. */
 export interface OldestRemoved {
   id: string;
   removed: string | null;
+}
+
+/** Minimal reference used for search results and titles. */
+export interface EntityRef {
+  id: string;
+  idReadable: string;
+  summary: string;
+  project: string | null;
 }
 
 /** One custom field of the issue as it is now, in project order. */
@@ -76,33 +83,29 @@ export interface SnapshotField {
   value: FieldValue;
 }
 
-/** Minimal issue reference used for search results and titles. */
-export interface IssueRef {
-  id: string;
-  idReadable: string;
-  summary: string;
-  project: string | null;
-}
-
-export interface IssueSnapshot {
+/** The entity as it is now. */
+export interface EntitySnapshot {
   created: number;
   reporter: ActivityAuthor | null;
   summary: string;
-  description: string;
+  /** Description (issues) or content (articles). */
+  body: string;
+  /** Empty for articles. */
   fields: SnapshotField[];
 }
 
-const TEXT_CATEGORIES = 'DescriptionCategory,SummaryCategory';
 const TEXT_FIELDS = 'id,$type,timestamp,added,author(id,login,name,fullName),category(id),field(presentation)';
 const VALUE_FIELDS = 'id,$type,name,localizedName,fullName,login,presentation,minutes,text';
 const FIELD_ACTIVITY_FIELDS =
   `id,$type,timestamp,author(id,login,name,fullName),category(id),added(${VALUE_FIELDS}),removed(${VALUE_FIELDS}),` +
   'field(id,presentation,name,customField(id,name,fieldType(id,isMultiValue)))';
+const REF_FIELDS = 'id,idReadable,summary,project(shortName)';
 
 /** YouTrack's default page size for the activities endpoint. */
 const PAGE_SIZE = 42;
 /** Safety cap so a misbehaving endpoint cannot loop forever. */
 const MAX_PAGES = 50;
+const SEARCH_LIMIT = 15;
 
 type Raw = Record<string, unknown>;
 
@@ -113,15 +116,18 @@ const asText = (value: unknown): string | null => {
   return typeof value === 'string' ? value : String(value);
 };
 
-const activitiesUrl = (issueId: string, params: Record<string, string>): string =>
-  `issues/${encodeURIComponent(issueId)}/activities?${new URLSearchParams(params).toString()}`;
+const entityUrl = (adapter: EntityAdapter, id: string, suffix = ''): string =>
+  `${adapter.apiBase}/${encodeURIComponent(id)}${suffix}`;
+
+const activitiesUrl = (adapter: EntityAdapter, id: string, params: Record<string, string>): string =>
+  entityUrl(adapter, id, `/activities?${new URLSearchParams(params).toString()}`);
 
 /** Loads every activity of the given categories; pages are fetched sequentially until a short page. */
-async function fetchActivities(host: HostAPI, issueId: string, categories: string, fields: string): Promise<Raw[]> {
+async function fetchActivities(host: HostAPI, adapter: EntityAdapter, id: string, categories: string, fields: string): Promise<Raw[]> {
   const all: Raw[] = [];
 
   for (let page = 0; page < MAX_PAGES; page++) {
-    const url = activitiesUrl(issueId, {
+    const url = activitiesUrl(adapter, id, {
       categories,
       fields,
       reverse: 'true',
@@ -168,23 +174,31 @@ const normalizeField = (raw: Raw): FieldActivityItem => ({
 
 const newestFirst = <T extends {timestamp: number}>(items: T[]): T[] => items.sort((a, b) => b.timestamp - a.timestamp);
 
-/** All Summary/Description changes, newest first, with `added` only. */
-export async function fetchTextActivities(host: HostAPI, issueId: string): Promise<ActivityItem[]> {
-  return newestFirst((await fetchActivities(host, issueId, TEXT_CATEGORIES, TEXT_FIELDS)).map(normalizeText));
+const categoryOf = (adapter: EntityAdapter, kind: TextKind): string =>
+  (kind === 'Summary' ? adapter.summaryCategory : adapter.bodyCategory);
+
+/** All summary/body changes, newest first, with `added` only. */
+export async function fetchTextActivities(host: HostAPI, adapter: EntityAdapter, id: string): Promise<ActivityItem[]> {
+  const categories = `${adapter.bodyCategory},${adapter.summaryCategory}`;
+  return newestFirst((await fetchActivities(host, adapter, id, categories, TEXT_FIELDS)).map(normalizeText));
 }
 
-/** All custom field changes, newest first, with `added` and `removed` (values are small). */
-export async function fetchFieldActivities(host: HostAPI, issueId: string): Promise<FieldActivityItem[]> {
-  return newestFirst((await fetchActivities(host, issueId, 'CustomFieldCategory', FIELD_ACTIVITY_FIELDS)).map(normalizeField));
+/** All custom field changes, newest first, with `added` and `removed` (values are small). Issues only. */
+export async function fetchFieldActivities(host: HostAPI, adapter: EntityAdapter, id: string): Promise<FieldActivityItem[]> {
+  if (!adapter.supportsFields) {
+    return [];
+  }
+  return newestFirst((await fetchActivities(host, adapter, id, 'CustomFieldCategory', FIELD_ACTIVITY_FIELDS)).map(normalizeField));
 }
 
-/** Fetches only the oldest change of one text category, with its `removed` (the initial content). */
+/** Fetches only the oldest change of one text kind, with its `removed` (the text at creation). */
 export async function fetchOldestRemoved(
   host: HostAPI,
-  issueId: string,
-  category: TextCategoryId
+  adapter: EntityAdapter,
+  id: string,
+  kind: TextKind
 ): Promise<OldestRemoved | null> {
-  const url = activitiesUrl(issueId, {categories: category, fields: 'id,removed', reverse: 'false', $top: '1'});
+  const url = activitiesUrl(adapter, id, {categories: categoryOf(adapter, kind), fields: 'id,removed', reverse: 'false', $top: '1'});
   const response = await host.fetchYouTrack(url, {});
   if (!Array.isArray(response) || response.length === 0) {
     return null;
@@ -197,13 +211,7 @@ interface RawProjectCustomField {
   field?: {id?: string; name?: string; fieldType?: {id: string; isMultiValue?: boolean} | null};
 }
 
-/** The issue as it is now: creation info, current texts, and current custom field values in project order. */
-export async function fetchIssueSnapshot(host: HostAPI, issueId: string): Promise<IssueSnapshot> {
-  const url =
-    `issues/${encodeURIComponent(issueId)}?fields=created,reporter(id,login,name,fullName),summary,description,` +
-    `customFields(id,name,projectCustomField(field(id,name,fieldType(id,isMultiValue))),value(${VALUE_FIELDS}))`;
-  const raw = ((await host.fetchYouTrack(url, {})) ?? {}) as Raw;
-
+const parseSnapshotFields = (raw: Raw): SnapshotField[] => {
   const fields: SnapshotField[] = [];
   const customFields = Array.isArray(raw.customFields) ? (raw.customFields as Raw[]) : [];
   for (const customField of customFields) {
@@ -217,38 +225,55 @@ export async function fetchIssueSnapshot(host: HostAPI, issueId: string): Promis
       });
     }
   }
+  return fields;
+};
+
+/** The entity as it is now: creation info, current texts, and (for issues) current custom field values. */
+export async function fetchSnapshot(host: HostAPI, adapter: EntityAdapter, id: string): Promise<EntitySnapshot> {
+  const fieldsPart = adapter.supportsFields
+    ? `,customFields(id,name,projectCustomField(field(id,name,fieldType(id,isMultiValue))),value(${VALUE_FIELDS}))`
+    : '';
+  const url = entityUrl(adapter, id, `?fields=created,reporter(id,login,name,fullName),summary,${adapter.bodyField}${fieldsPart}`);
+  const raw = ((await host.fetchYouTrack(url, {})) ?? {}) as Raw;
 
   return {
     created: Number(raw.created ?? 0),
     reporter: (raw.reporter as ActivityAuthor | null | undefined) ?? null,
     summary: asText(raw.summary) ?? '',
-    description: asText(raw.description) ?? '',
-    fields
+    body: asText(raw[adapter.bodyField]) ?? '',
+    fields: adapter.supportsFields ? parseSnapshotFields(raw) : []
   };
 }
 
-const ISSUE_REF_FIELDS = 'id,idReadable,summary,project(shortName)';
-const SEARCH_LIMIT = 15;
-
-const toIssueRef = (raw: Raw): IssueRef => ({
+const toRef = (raw: Raw): EntityRef => ({
   id: String(raw.id),
   idReadable: asText(raw.idReadable) ?? String(raw.id),
   summary: asText(raw.summary) ?? '',
   project: asText((raw.project as Raw | null | undefined)?.shortName) ?? null
 });
 
-/** The issue's readable id and summary. */
-export async function fetchIssueRef(host: HostAPI, issueId: string): Promise<IssueRef> {
-  const raw = ((await host.fetchYouTrack(`issues/${encodeURIComponent(issueId)}?fields=${ISSUE_REF_FIELDS}`, {})) ?? {}) as Raw;
-  return toIssueRef(raw);
+/** The entity's readable id and summary. */
+export async function fetchRef(host: HostAPI, adapter: EntityAdapter, id: string): Promise<EntityRef> {
+  const raw = ((await host.fetchYouTrack(entityUrl(adapter, id, `?fields=${REF_FIELDS}`), {})) ?? {}) as Raw;
+  return toRef(raw);
 }
 
-/** Runs a YouTrack search query and returns matching issues, excluding `excludeId`. */
-export async function searchIssues(host: HostAPI, query: string, excludeId: string): Promise<IssueRef[]> {
-  const params = new URLSearchParams({query, fields: ISSUE_REF_FIELDS, $top: String(SEARCH_LIMIT)});
-  const response = await host.fetchYouTrack(`issues?${params.toString()}`, {});
+/** Looks an entity up by its readable id (e.g. `ABC-12`); null when it does not exist. */
+export async function fetchByReadableId(host: HostAPI, adapter: EntityAdapter, readableId: string): Promise<EntityRef | null> {
+  try {
+    const raw = (await host.fetchYouTrack(entityUrl(adapter, readableId, `?fields=${REF_FIELDS}`), {})) as Raw | null;
+    return raw && raw.id ? toRef(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Runs a YouTrack search query and returns matching entities, excluding `excludeId`. */
+export async function searchEntities(host: HostAPI, adapter: EntityAdapter, query: string, excludeId: string): Promise<EntityRef[]> {
+  const params = new URLSearchParams({query, fields: REF_FIELDS, $top: String(SEARCH_LIMIT)});
+  const response = await host.fetchYouTrack(`${adapter.apiBase}?${params.toString()}`, {});
   if (!Array.isArray(response)) {
     return [];
   }
-  return (response as Raw[]).map(toIssueRef).filter(issue => issue.id !== excludeId);
+  return (response as Raw[]).map(toRef).filter(entity => entity.id !== excludeId);
 }

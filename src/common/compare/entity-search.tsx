@@ -3,40 +3,42 @@ import Select, {type SelectItem, Type as SelectType} from '@jetbrains/ring-ui-bu
 import {Size} from '@jetbrains/ring-ui-built/components/input/input';
 
 import type {HostAPI} from '../../../@types/globals';
-import {type IssueRef, searchIssues} from '@/common/compare/api';
+import {type EntityRef, fetchByReadableId, searchEntities} from './api';
+import type {EntityAdapter} from './entity';
 import {createComponentLogger} from '@/common/utils/logger';
-import {buildQueries} from './search-queries';
+import {buildSearchPlan} from './search-queries';
 
-const logger = createComponentLogger('issue-search');
+const logger = createComponentLogger('entity-search');
 
 const DEBOUNCE_MS = 300;
 
-type IssueItem = SelectItem<{issue: IssueRef}>;
+type EntityItem = SelectItem<{entity: EntityRef}>;
 
-const toItem = (issue: IssueRef): IssueItem => ({
-  key: issue.id,
-  label: issue.idReadable,
-  description: issue.summary,
-  details: issue.project ?? undefined,
-  issue
+const toItem = (entity: EntityRef): EntityItem => ({
+  key: entity.id,
+  label: entity.idReadable,
+  description: entity.summary,
+  details: entity.project ?? undefined,
+  entity
 });
 
-interface IssueSearchProps {
+interface EntitySearchProps {
   host: HostAPI;
-  currentIssueId: string;
-  /** Called with the picked issue, or null when the field is cleared. */
-  onSelect(issue: IssueRef | null): void;
+  adapter: EntityAdapter;
+  currentId: string;
+  /** Called with the picked entity, or null when the field is cleared. */
+  onSelect(entity: EntityRef | null): void;
 }
 
 /**
- * Server-side issue search. The component owns the Select's `selected` state: Ring UI resets the
+ * Server-side entity search. The component owns the Select's `selected` state: Ring UI resets the
  * typed text to the selected label whenever `selected` or `data` change, so the selection is dropped
  * as soon as the user types something else. The parent keeps showing the last comparison meanwhile.
  */
-const IssueSearchComponent = ({host, currentIssueId, onSelect}: IssueSearchProps) => {
-  const [items, setItems] = useState<IssueItem[]>([]);
+const EntitySearchComponent = ({host, adapter, currentId, onSelect}: EntitySearchProps) => {
+  const [items, setItems] = useState<EntityItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<IssueItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<EntityItem | null>(null);
   // Mirrors selectedItem synchronously: the Select echoes the picked label via onFilter in the same tick.
   const selectedLabel = useRef<string | null>(null);
   const requestId = useRef(0);
@@ -47,8 +49,8 @@ const IssueSearchComponent = ({host, currentIssueId, onSelect}: IssueSearchProps
     const id = requestId.current;
     const isCurrent = () => id === requestId.current;
 
-    const queries = buildQueries(text);
-    if (queries.length === 0) {
+    const plan = buildSearchPlan(text, adapter);
+    if (plan.directId === null && plan.queries.length === 0) {
       setItems([]);
       setLoading(false);
       return;
@@ -56,18 +58,22 @@ const IssueSearchComponent = ({host, currentIssueId, onSelect}: IssueSearchProps
 
     setLoading(true);
     try {
-      let results: IssueRef[] = [];
-      for (const query of queries) {
-        results = await searchIssues(host, query, currentIssueId);
+      let results: EntityRef[] = [];
+      const direct = plan.directId === null ? null : await fetchByReadableId(host, adapter, plan.directId);
+      if (direct && direct.id !== currentId) {
+        results = [direct];
+      }
+      for (const query of plan.queries) {
         if (results.length > 0) {
           break;
         }
+        results = await searchEntities(host, adapter, query, currentId);
       }
       if (isCurrent()) {
         setItems(results.map(toItem));
       }
     } catch (error) {
-      logger.error('Issue search failed', {text}, error);
+      logger.error('Search failed', {text}, error);
       if (isCurrent()) {
         setItems([]);
       }
@@ -76,7 +82,7 @@ const IssueSearchComponent = ({host, currentIssueId, onSelect}: IssueSearchProps
         setLoading(false);
       }
     }
-  }, [host, currentIssueId]);
+  }, [host, adapter, currentId]);
 
   const handleFilter = useCallback((text: string) => {
     window.clearTimeout(timer.current);
@@ -95,16 +101,16 @@ const IssueSearchComponent = ({host, currentIssueId, onSelect}: IssueSearchProps
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
-  const handleChange = useCallback((item: IssueItem | null) => {
+  const handleChange = useCallback((item: EntityItem | null) => {
     // The Select echoes the picked label through onFilter just before onChange; drop that pending search.
     window.clearTimeout(timer.current);
     selectedLabel.current = item ? String(item.label) : null;
     setSelectedItem(item);
-    onSelect(item?.issue ?? null);
+    onSelect(item?.entity ?? null);
   }, [onSelect]);
 
   return (
-    <Select<{issue: IssueRef}>
+    <Select<{entity: EntityRef}>
       type={SelectType.INPUT}
       size={Size.FULL}
       className="compare-header__search"
@@ -115,12 +121,12 @@ const IssueSearchComponent = ({host, currentIssueId, onSelect}: IssueSearchProps
       onChange={handleChange}
       loading={loading}
       loadingMessage="Searching…"
-      notFoundMessage="No matching issues"
+      notFoundMessage={`No matching ${adapter.noun}s`}
       label=""
-      inputPlaceholder="Search issue by ID or summary"
+      inputPlaceholder={`Search ${adapter.noun} by ID or ${adapter.summaryNoun}`}
       clear
     />
   );
 };
 
-export const IssueSearch = memo(IssueSearchComponent);
+export const EntitySearch = memo(EntitySearchComponent);

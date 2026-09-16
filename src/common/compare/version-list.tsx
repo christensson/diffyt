@@ -6,7 +6,7 @@ import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/load
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 import chevronLeftIcon from '@jetbrains/icons/chevron-left';
 
-import {type Part, type Version, PARTS} from './versions';
+import type {Part, Version} from './versions';
 import {type LoadStatus, authorName, formatTimestamp} from './selection';
 
 interface VersionRowProps {
@@ -51,6 +51,8 @@ interface VersionListProps {
   status: LoadStatus;
   errorMessage?: string;
   selectedIds: string[];
+  /** Available parts; the tab row is hidden when there is only one. */
+  parts: readonly Part[];
   part: Part;
   locale: string | undefined;
   onPartChange(part: Part): void;
@@ -64,6 +66,7 @@ const VersionListComponent = ({
   status,
   errorMessage,
   selectedIds,
+  parts,
   part,
   locale,
   onPartChange,
@@ -107,11 +110,13 @@ const VersionListComponent = ({
         <Button icon={chevronLeftIcon} title="Hide version list" aria-label="Hide version list" onClick={onCollapse}/>
       </header>
 
-      <ButtonGroup className="version-list__filters">
-        {PARTS.map(candidate => (
-          <Button key={candidate} active={part === candidate} onClick={() => onPartChange(candidate)}>{candidate}</Button>
-        ))}
-      </ButtonGroup>
+      {parts.length > 1 && (
+        <ButtonGroup className="version-list__filters">
+          {parts.map(candidate => (
+            <Button key={candidate} active={part === candidate} onClick={() => onPartChange(candidate)}>{candidate}</Button>
+          ))}
+        </ButtonGroup>
+      )}
 
       <Text info size={Text.Size.S} className="version-list__hint">
         {'Click a version to see what changed in it. Tick two versions to compare them.'}
