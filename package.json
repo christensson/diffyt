@@ -12,7 +12,7 @@
     "build": "npm run clean && npm run lint && npm run typecheck && npm run build:frontend && youtrack-app app validate",
     "build:nolint": "npm run clean && npm run build:frontend && youtrack-app app validate",
     "test": "echo 'no tests'",
-    "pack": "rm -rf diffyt.zip && npx --yes bestzip diffyt.zip dist/*",
+    "pack": "rm -rf diffyt.zip && cd dist/ && npx --yes bestzip ../diffyt.zip *",
     "upload": "youtrack-app app upload",
     "upload-local": "set -a && source .env && set +a && youtrack-app app upload --host $YOUTRACK_HOST --token $YOUTRACK_TOKEN",
     "update": "npm run build && npm run upload-local",
