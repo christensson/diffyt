@@ -4,6 +4,7 @@ import Theme, {ThemeProvider} from '@jetbrains/ring-ui-built/components/global/t
 import type {HostAPI} from '../../../@types/globals';
 import {createComponentLogger} from '@/common/utils/logger';
 import {fetchFieldActivities, fetchOldestRemoved, fetchSnapshot, fetchTextActivities} from './api';
+import type {DateFormat} from './date-format';
 import type {EntityAdapter} from './entity';
 import {contentMarkers} from './issue-state';
 import {type Part, type Version, buildVersions, partsFor, versionsFor} from './versions';
@@ -30,11 +31,11 @@ export interface VersionsAppProps {
   host: HostAPI;
   adapter: EntityAdapter;
   entityId: string | undefined;
-  locale: string | undefined;
+  dateFormat: DateFormat;
 }
 
 /** Timeline of complete entity states with a per-part diff (issues: Content | Fields, articles: Content). */
-const VersionsAppComponent = ({host, adapter, entityId, locale}: VersionsAppProps) => {
+const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsAppProps) => {
   const parts = partsFor(adapter);
   const [versions, setVersions] = useState<Version[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
@@ -64,7 +65,7 @@ const VersionsAppComponent = ({host, adapter, entityId, locale}: VersionsAppProp
         if (cancelled) {
           return;
         }
-        const result = buildVersions(adapter, textItems, fieldItems, {Body: oldestBody, Summary: oldestSummary}, snapshot, locale);
+        const result = buildVersions(adapter, textItems, fieldItems, {Body: oldestBody, Summary: oldestSummary}, snapshot, dateFormat);
         setVersions(result);
         // Preselect the newest version of the default part so the dialog never opens empty.
         setSelectedIds(newestId(versionsFor(result, 'Content')));
@@ -82,10 +83,10 @@ const VersionsAppComponent = ({host, adapter, entityId, locale}: VersionsAppProp
     return () => {
       cancelled = true;
     };
-  }, [host, adapter, entityId, locale]);
+  }, [host, adapter, entityId, dateFormat]);
 
   const visibleVersions = useMemo(() => versionsFor(versions, part), [versions, part]);
-  const diff = useMemo(() => deriveDiff(visibleVersions, selectedIds, part, locale), [visibleVersions, selectedIds, part, locale]);
+  const diff = useMemo(() => deriveDiff(visibleVersions, selectedIds, part, dateFormat), [visibleVersions, selectedIds, part, dateFormat]);
 
   const handleSelectSingle = useCallback((id: string) => setSelectedIds([id]), []);
   const handleToggle = useCallback((id: string) => setSelectedIds(previous => toggleSelection(previous, id)), []);
@@ -116,7 +117,7 @@ const VersionsAppComponent = ({host, adapter, entityId, locale}: VersionsAppProp
           selectedIds={selectedIds}
           parts={parts}
           part={part}
-          locale={locale}
+          dateFormat={dateFormat}
           onPartChange={handlePartChange}
           onSelectSingle={handleSelectSingle}
           onToggle={handleToggle}

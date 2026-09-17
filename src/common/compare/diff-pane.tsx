@@ -165,6 +165,7 @@ const DiffPaneComponent = ({
         styles={diffStyles}
         disableWorker
         hideSummary
+        hideLineNumbers
         {...sectionProps(diff.oldText, diff.newText, sectionMarkers)}
       />
     );

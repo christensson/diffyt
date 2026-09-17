@@ -1,4 +1,5 @@
 import type {FieldScalar, FieldValue, FieldValueObject} from './api';
+import {type DateFormat, formatDateOnly, formatDateTime} from './date-format';
 
 export type FieldItemValue = FieldScalar | FieldValueObject;
 
@@ -20,30 +21,16 @@ export const valueKey = (value: FieldItemValue): string => {
   return String(value);
 };
 
-const toBcp47 = (locale: string | undefined): string | undefined => locale?.replace(/_/g, '-');
-
-const formatDate = (timestamp: number, locale: string | undefined, withTime: boolean): string => {
-  // Date-only fields are stored as midnight UTC; format them in UTC to avoid shifting the day.
-  const options: Intl.DateTimeFormatOptions = withTime
-    ? {dateStyle: 'medium', timeStyle: 'short'}
-    : {dateStyle: 'medium', timeZone: 'UTC'};
-  try {
-    return new Intl.DateTimeFormat(toBcp47(locale), options).format(timestamp);
-  } catch {
-    return new Intl.DateTimeFormat(undefined, options).format(timestamp);
-  }
-};
-
 /** Human-readable form of one value; `fieldTypeId` is e.g. "enum[1]", "date", "date and time", "period". */
-export const presentOne = (value: FieldItemValue, fieldTypeId: string, locale: string | undefined): string => {
+export const presentOne = (value: FieldItemValue, fieldTypeId: string, dateFormat: DateFormat): string => {
   if (isObject(value)) {
     return value.text ?? value.presentation ?? value.localizedName ?? value.name ?? value.fullName ?? value.login ?? value.id ?? '';
   }
   if (typeof value === 'number' && fieldTypeId === 'date') {
-    return formatDate(value, locale, false);
+    return formatDateOnly(value, dateFormat);
   }
   if (typeof value === 'number' && fieldTypeId === 'date and time') {
-    return formatDate(value, locale, true);
+    return formatDateTime(value, dateFormat);
   }
   return String(value);
 };
@@ -57,9 +44,9 @@ export const formatFieldText = (
   values: FieldItemValue[],
   isMulti: boolean,
   fieldTypeId: string,
-  locale: string | undefined
+  dateFormat: DateFormat
 ): string => {
-  const presented = values.map(value => presentOne(value, fieldTypeId, locale));
+  const presented = values.map(value => presentOne(value, fieldTypeId, dateFormat));
   if (presented.length === 0) {
     return `${label}:`;
   }

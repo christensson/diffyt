@@ -1,4 +1,5 @@
 import type {ActivityAuthor} from './api';
+import {type DateFormat, formatDateTime} from './date-format';
 import type {DiffModel} from './types';
 import {type Part, type Version, textFor} from './versions';
 
@@ -10,22 +11,11 @@ export const MAX_SELECTED = 2;
 export const authorName = (author: ActivityAuthor | null): string =>
   author?.fullName || author?.name || author?.login || 'Unknown';
 
-const toBcp47 = (locale: string | undefined): string | undefined => locale?.replace(/_/g, '-');
-
-export const formatTimestamp = (timestamp: number, locale: string | undefined): string => {
-  const options: Intl.DateTimeFormatOptions = {dateStyle: 'medium', timeStyle: 'short'};
-  try {
-    return new Intl.DateTimeFormat(toBcp47(locale), options).format(timestamp);
-  } catch {
-    return new Intl.DateTimeFormat(undefined, options).format(timestamp);
-  }
-};
-
-/** "v3 · Sep 14, 2026, 5:05 PM · Ada Lovelace" (date/author omitted when unknown). */
-export const describeVersion = (version: Version, locale: string | undefined): string => {
+/** "v3 · 14 Sep 2026 17:05 · Ada Lovelace" (date/author omitted when unknown). */
+export const describeVersion = (version: Version, dateFormat: DateFormat): string => {
   const parts = [`v${version.number}`];
   if (version.timestamp !== null) {
-    parts.push(formatTimestamp(version.timestamp, locale));
+    parts.push(formatDateTime(version.timestamp, dateFormat));
   }
   if (version.author !== null) {
     parts.push(authorName(version.author));
@@ -47,13 +37,13 @@ export function toggleSelection(selectedIds: string[], id: string): string[] {
   return selectedIds.length >= MAX_SELECTED ? [selectedIds[0], id] : [...selectedIds, id];
 }
 
-const diffBetween = (older: Version, newer: Version, part: Part, locale: string | undefined): DiffModel => ({
+const diffBetween = (older: Version, newer: Version, part: Part, dateFormat: DateFormat): DiffModel => ({
   mode: 'diff',
   label: part,
   oldText: textFor(older, part),
   newText: textFor(newer, part),
-  leftTitle: describeVersion(older, locale),
-  rightTitle: describeVersion(newer, locale)
+  leftTitle: describeVersion(older, dateFormat),
+  rightTitle: describeVersion(newer, dateFormat)
 });
 
 /**
@@ -65,7 +55,7 @@ export function deriveDiff(
   visibleVersions: Version[],
   selectedIds: string[],
   part: Part,
-  locale: string | undefined
+  dateFormat: DateFormat
 ): DiffModel | null {
   const selected = selectedIds
     .map(id => findById(visibleVersions, id))
@@ -79,11 +69,11 @@ export function deriveDiff(
     const [version] = selected;
     const predecessor = visibleVersions.find(other => other.number < version.number);
     if (!predecessor) {
-      return {mode: 'initial', label: part, text: textFor(version, part), title: describeVersion(version, locale)};
+      return {mode: 'initial', label: part, text: textFor(version, part), title: describeVersion(version, dateFormat)};
     }
-    return diffBetween(predecessor, version, part, locale);
+    return diffBetween(predecessor, version, part, dateFormat);
   }
 
   const [older, newer] = [...selected].sort((a, b) => a.number - b.number);
-  return diffBetween(older, newer, part, locale);
+  return diffBetween(older, newer, part, dateFormat);
 }

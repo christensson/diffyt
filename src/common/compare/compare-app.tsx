@@ -8,6 +8,7 @@ import Text from '@jetbrains/ring-ui-built/components/text/text';
 import type {HostAPI} from '../../../@types/globals';
 import {createComponentLogger} from '@/common/utils/logger';
 import {type EntityRef, type EntitySnapshot, fetchRef, fetchSnapshot} from './api';
+import type {DateFormat} from './date-format';
 import type {EntityAdapter} from './entity';
 import {buildCatalogue, contentMarkers, renderContent, renderFieldsFor} from './issue-state';
 import type {DiffModel, ViewOptions} from './types';
@@ -41,7 +42,7 @@ const buildDiff = (
   adapter: EntityAdapter,
   current: LoadedEntity,
   other: LoadedEntity,
-  locale: string | undefined
+  dateFormat: DateFormat
 ): DiffModel => {
   const titles = {leftTitle: titleOf(current), rightTitle: titleOf(other)};
   if (mode === 'Content') {
@@ -57,8 +58,8 @@ const buildDiff = (
   return {
     mode: 'diff',
     label: mode,
-    oldText: renderFieldsFor(current.snapshot, catalogue, locale),
-    newText: renderFieldsFor(other.snapshot, catalogue, locale),
+    oldText: renderFieldsFor(current.snapshot, catalogue, dateFormat),
+    newText: renderFieldsFor(other.snapshot, catalogue, dateFormat),
     ...titles
   };
 };
@@ -71,11 +72,11 @@ export interface CompareAppProps {
   host: HostAPI;
   adapter: EntityAdapter;
   entityId: string | undefined;
-  locale: string | undefined;
+  dateFormat: DateFormat;
 }
 
 /** Diffs the current entity against another one picked through a search field. */
-const CompareAppComponent = ({host, adapter, entityId, locale}: CompareAppProps) => {
+const CompareAppComponent = ({host, adapter, entityId, dateFormat}: CompareAppProps) => {
   const modes = partsFor(adapter);
   const [current, setCurrent] = useState<LoadedEntity | null>(null);
   const [currentError, setCurrentError] = useState<string>();
@@ -143,8 +144,8 @@ const CompareAppComponent = ({host, adapter, entityId, locale}: CompareAppProps)
   );
 
   const diff = useMemo(
-    () => (current && other && otherStatus === 'ready' ? buildDiff(mode, adapter, current, other, locale) : null),
-    [mode, adapter, current, other, otherStatus, locale]
+    () => (current && other && otherStatus === 'ready' ? buildDiff(mode, adapter, current, other, dateFormat) : null),
+    [mode, adapter, current, other, otherStatus, dateFormat]
   );
 
   const renderBody = () => {

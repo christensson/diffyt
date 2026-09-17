@@ -7,19 +7,25 @@ import Text from '@jetbrains/ring-ui-built/components/text/text';
 import chevronLeftIcon from '@jetbrains/icons/chevron-left';
 
 import type {Part, Version} from './versions';
-import {type LoadStatus, authorName, formatTimestamp} from './selection';
+import {type DateFormat, formatDateTime} from './date-format';
+import {type LoadStatus, authorName} from './selection';
 
 interface VersionRowProps {
   version: Version;
   selected: boolean;
-  locale: string | undefined;
+  dateFormat: DateFormat;
   onSelectSingle(id: string): void;
   onToggle(id: string): void;
 }
 
-const VersionRow = memo(({version, selected, locale, onSelectSingle, onToggle}: VersionRowProps) => {
+/**
+ * Two lines: `Summary, Priority v6`, then `16 Sep 2026 20:49 · Ada Lovelace`. Label and author
+ * truncate with an ellipsis and carry the full text as a tooltip.
+ */
+const VersionRow = memo(({version, selected, dateFormat, onSelectSingle, onToggle}: VersionRowProps) => {
   const handleToggle = useCallback(() => onToggle(version.id), [onToggle, version.id]);
   const handleSelect = useCallback(() => onSelectSingle(version.id), [onSelectSingle, version.id]);
+  const author = version.author !== null ? authorName(version.author) : null;
 
   return (
     <li className={`version-row${selected ? ' version-row--selected' : ''}`}>
@@ -31,14 +37,17 @@ const VersionRow = memo(({version, selected, locale, onSelectSingle, onToggle}: 
         />
       </span>
       <button type="button" className="version-row__body" onClick={handleSelect}>
-        <span className="version-row__kind" title={version.label}>{version.label}</span>
-        <span className="version-row__meta">
+        <span className="version-row__title">
+          <span className="version-row__kind" title={version.label}>{version.label}</span>
           <span className="version-row__number">{`v${version.number}`}</span>
-          {version.timestamp !== null && (
-            <span className="version-row__date">{formatTimestamp(version.timestamp, locale)}</span>
-          )}
         </span>
-        {version.author !== null && <span className="version-row__author">{authorName(version.author)}</span>}
+        <span className="version-row__meta">
+          {version.timestamp !== null && (
+            <span className="version-row__date">{formatDateTime(version.timestamp, dateFormat)}</span>
+          )}
+          {version.timestamp !== null && author !== null && <span className="version-row__separator">{'·'}</span>}
+          {author !== null && <span className="version-row__author" title={author}>{author}</span>}
+        </span>
       </button>
     </li>
   );
@@ -54,7 +63,7 @@ interface VersionListProps {
   /** Available parts; the tab row is hidden when there is only one. */
   parts: readonly Part[];
   part: Part;
-  locale: string | undefined;
+  dateFormat: DateFormat;
   onPartChange(part: Part): void;
   onSelectSingle(id: string): void;
   onToggle(id: string): void;
@@ -68,7 +77,7 @@ const VersionListComponent = ({
   selectedIds,
   parts,
   part,
-  locale,
+  dateFormat,
   onPartChange,
   onSelectSingle,
   onToggle,
@@ -91,7 +100,7 @@ const VersionListComponent = ({
             key={version.id}
             version={version}
             selected={selectedIds.includes(version.id)}
-            locale={locale}
+            dateFormat={dateFormat}
             onSelectSingle={onSelectSingle}
             onToggle={onToggle}
           />
@@ -119,7 +128,7 @@ const VersionListComponent = ({
       )}
 
       <Text info size={Text.Size.S} className="version-list__hint">
-        {'Click a version to see what changed in it. Tick two versions to compare them.'}
+        {'Click a version to see its change; tick two to compare them.'}
       </Text>
 
       {renderBody()}

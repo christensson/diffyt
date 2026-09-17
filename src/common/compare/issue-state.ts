@@ -1,4 +1,5 @@
 import type {EntitySnapshot, SnapshotField} from './api';
+import type {DateFormat} from './date-format';
 import type {EntityAdapter} from './entity';
 import {type FieldItemValue, formatFieldText, isMultiValueType, toList} from './field-values';
 
@@ -54,12 +55,12 @@ export const markerLineNumbers = (text: string, marker: string): number[] =>
 export const renderFieldLines = (
   values: ReadonlyMap<string, FieldItemValue[]>,
   catalogue: CatalogueEntry[],
-  locale: string | undefined
+  dateFormat: DateFormat
 ): string =>
   catalogue
-    .map(entry => formatFieldText(entry.label, values.get(entry.id) ?? [], entry.isMulti, entry.typeId, locale))
+    .map(entry => formatFieldText(entry.label, values.get(entry.id) ?? [], entry.isMulti, entry.typeId, dateFormat))
     .join('\n');
 
 /** The Fields text of an entity as it is now. */
-export const renderFieldsFor = (snapshot: EntitySnapshot, catalogue: CatalogueEntry[], locale: string | undefined): string =>
-  renderFieldLines(new Map(snapshot.fields.map(field => [field.id, toList(field.value)])), catalogue, locale);
+export const renderFieldsFor = (snapshot: EntitySnapshot, catalogue: CatalogueEntry[], dateFormat: DateFormat): string =>
+  renderFieldLines(new Map(snapshot.fields.map(field => [field.id, toList(field.value)])), catalogue, dateFormat);

@@ -1,4 +1,5 @@
 import type {ActivityAuthor, ActivityItem, EntitySnapshot, FieldActivityItem, FieldInfo, OldestRemoved} from './api';
+import type {DateFormat} from './date-format';
 import type {EntityAdapter, TextKind} from './entity';
 import {type FieldItemValue, isMultiValueType, stateAfter, stateBefore, toList} from './field-values';
 import {
@@ -198,7 +199,7 @@ export function buildVersions(
   fieldItems: FieldActivityItem[],
   oldestRemoved: OldestRemovedByKind,
   snapshot: EntitySnapshot | null,
-  locale: string | undefined
+  dateFormat: DateFormat
 ): Version[] {
   const catalogue = buildCatalogue(snapshot, fieldItems);
   const timelines = buildFieldTimelines(catalogue, fieldItems, snapshot);
@@ -213,7 +214,7 @@ export function buildVersions(
     summary: state.summary,
     body: state.body,
     contentText: renderContent(state.summary, state.body, adapter),
-    fieldsText: renderFieldLines(state.fields, catalogue, locale)
+    fieldsText: renderFieldLines(state.fields, catalogue, dateFormat)
   });
 
   const versions: Version[] = [{

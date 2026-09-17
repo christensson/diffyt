@@ -25,10 +25,13 @@ menu:
   as one YAML-style document). The list shows the versions that changed that part, plus v1.
 - Select **one** version to see what changed in it, or tick **two** to diff them directly.
 - Collapse the version list to give the diff the full width.
+- Dates follow the **date format and time zone from your YouTrack profile** (Profile → General), read
+  once per widget from `GET /api/users/me`. If that request fails, YouTrack's default format
+  (`d MMM yyyy HH:mm`) is used.
 
 All widgets are frontend only: they call the YouTrack REST API
 (`GET /api/issues/{id}/activities` for the `DescriptionCategory`, `SummaryCategory`, and
-`CustomFieldCategory` categories) through the Host API. There is no app backend, no workflows, and no settings.
+`CustomFieldCategory` categories, plus `GET /api/users/me` for the date format) through the Host API. There is no app backend, no workflows, and no settings.
 
 ## Quick Start
 
@@ -69,7 +72,8 @@ src/
 │       ├── entity.ts             # Issue/article adapter: REST base, categories, labels
 │       ├── api.ts                # REST types + fetches (activities, snapshot, search)
 │       ├── versions.ts           # Timeline of full entity states (v1 + one per save)
-│       ├── selection.ts          # Selection rules, diff derivation, formatting
+│       ├── selection.ts          # Selection rules, diff derivation, version titles
+│       ├── date-format.ts        # Profile date format/time zone + Java-pattern formatter
 │       ├── field-values.ts       # Custom field value presentation and multi-value set arithmetic
 │       ├── issue-state.ts        # Field catalogue and Content/Fields text rendering
 │       ├── search-queries.ts     # Search plan for the "compare to other" field
@@ -145,7 +149,7 @@ Priority: Critical
 Subsystems:
 - UI
 - API
-Due Date: Oct 1, 2026
+Due Date: 1 Oct 2026
 Type: Bug
 ```
 

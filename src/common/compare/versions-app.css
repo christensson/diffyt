@@ -3,7 +3,7 @@
 /* Two columns: version list + diff. The list column disappears when collapsed. */
 .app {
   display: grid;
-  grid-template-columns: calc(var(--ring-unit) * 40) minmax(0, 1fr);
+  grid-template-columns: calc(var(--ring-unit) * 30) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
@@ -27,7 +27,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--ring-unit);
-  padding: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2) var(--ring-unit);
+  padding: var(--ring-unit) var(--ring-unit) calc(var(--ring-unit) / 2) calc(var(--ring-unit) * 1.5);
 }
 
 .version-list__title {
@@ -38,12 +38,12 @@
 
 .version-list__filters {
   align-self: flex-start;
-  margin: 0 calc(var(--ring-unit) * 2);
+  margin: 0 calc(var(--ring-unit) * 1.5);
 }
 
 .version-list__hint {
   display: block;
-  padding: var(--ring-unit) calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 1.5);
+  padding: var(--ring-unit) calc(var(--ring-unit) * 1.5);
 }
 
 .version-list__items {
@@ -60,7 +60,7 @@
   display: flex;
   align-items: center;
   gap: var(--ring-unit);
-  padding: calc(var(--ring-unit) * 2);
+  padding: calc(var(--ring-unit) * 1.5);
 }
 
 .version-list__state--error {
@@ -70,8 +70,8 @@
 .version-row {
   display: flex;
   align-items: flex-start;
-  gap: var(--ring-unit);
-  padding: 0 calc(var(--ring-unit) * 2) 0 calc(var(--ring-unit) * 1.5);
+  gap: calc(var(--ring-unit) / 2);
+  padding: 0 var(--ring-unit);
   border-bottom: 1px solid var(--ring-line-color);
 }
 
@@ -86,19 +86,17 @@
 .version-row__check {
   display: flex;
   align-items: center;
-  height: calc(var(--ring-unit) * 5);
+  height: calc(var(--ring-unit) * 4.5);
 }
 
 /* The row body is a real button for keyboard access, styled as plain content. */
 .version-row__body {
-  display: grid;
+  display: flex;
   flex: 1;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: var(--ring-unit);
-  align-items: baseline;
+  flex-direction: column;
   min-width: 0;
   margin: 0;
-  padding: var(--ring-unit) 0;
+  padding: calc(var(--ring-unit) * 0.75) 0;
   border: 0;
   background: none;
   color: inherit;
@@ -113,36 +111,46 @@
   border-radius: var(--ring-border-radius);
 }
 
-.version-row__kind {
-  overflow: hidden;
-  font-weight: bold;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.version-row__meta {
+/* Line 1: what changed + version number. */
+.version-row__title {
   display: flex;
+  gap: calc(var(--ring-unit) / 2);
   align-items: baseline;
-  gap: var(--ring-unit);
   min-width: 0;
 }
 
 .version-row__number {
+  flex: none;
+  margin-left: auto;
   color: var(--ring-secondary-color);
-  font-size: var(--ring-font-size-smaller);
+  font-variant-numeric: tabular-nums;
 }
 
-.version-row__date {
+.version-row__kind {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Line 2: date · author, in the secondary size. */
+.version-row__meta {
+  display: flex;
+  gap: calc(var(--ring-unit) / 2);
+  align-items: baseline;
+  min-width: 0;
   color: var(--ring-secondary-color);
   font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height-lowest);
+}
+
+.version-row__date,
+.version-row__separator {
+  flex: none;
   white-space: nowrap;
 }
 
 .version-row__author {
-  grid-column: 1 / -1;
   overflow: hidden;
-  color: var(--ring-secondary-color);
-  font-size: var(--ring-font-size-smaller);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
