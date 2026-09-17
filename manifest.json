@@ -4,10 +4,12 @@
   "title": "Diffyt",
   "description": "Compare versions of tickets and articles, or compare two of them, with a line-by-line diff.",
   "version": "0.1.0",
+  "changeNotes": "Initial version.",
   "vendor": {
     "name": "Marcus Christensson",
     "url": "https://github.com/christensson/diffyt"
   },
+  "minYouTrackVersion": "2025.1.0",
   "icon": "icon.svg",
   "widgets": [
     {
