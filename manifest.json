@@ -11,11 +11,11 @@
   "icon": "icon.svg",
   "widgets": [
     {
-      "key": "compare-versions",
+      "key": "ticket-versions",
       "name": "Compare versions",
       "description": "Compare summary, description and field versions of an issue",
-      "indexPath": "compare-versions/index.html",
-      "iconPath": "compare-versions/widget-icon.svg",
+      "indexPath": "ticket-versions/index.html",
+      "iconPath": "ticket-versions/widget-icon.svg",
       "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
       "permissions": [
         "READ_ISSUE"
@@ -26,11 +26,11 @@
       }
     },
     {
-      "key": "compare-issues",
+      "key": "ticket-compare",
       "name": "Compare with another ticket",
       "description": "Compare this ticket with another ticket",
-      "indexPath": "compare-issues/index.html",
-      "iconPath": "compare-issues/widget-icon.svg",
+      "indexPath": "ticket-compare/index.html",
+      "iconPath": "ticket-compare/widget-icon.svg",
       "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
       "permissions": [
         "READ_ISSUE"

@@ -81,8 +81,8 @@ src/
 │       ├── compare-app.tsx/.css  # "Compare with another …" UI (search + diff)
 │       ├── version-list.tsx, entity-search.tsx, diff-pane.tsx/.css, use-dark-theme.ts, types.ts, base.css
 └── widgets/
-    ├── compare-versions/         # Issue: VersionsApp with the ISSUE adapter
-    ├── compare-issues/           # Issue: CompareApp with the ISSUE adapter
+    ├── ticket-versions/         # Issue: VersionsApp with the ISSUE adapter
+    ├── ticket-compare/           # Issue: CompareApp with the ISSUE adapter
     ├── article-versions/         # Article: VersionsApp with the ARTICLE adapter
     └── article-compare/          # Article: CompareApp with the ARTICLE adapter
         └── index.html / index.tsx / app.tsx / widget-icon.svg
