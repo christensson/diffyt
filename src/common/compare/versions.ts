@@ -27,7 +27,7 @@ export interface Version {
   author: ActivityAuthor | null;
   isInitial: boolean;
   changedParts: ReadonlySet<Part>;
-  /** "Created" for v1, otherwise the changed names, e.g. "Summary, Priority". */
+  /** "Initial" for v1, otherwise the changed names, e.g. "Summary, Priority". */
   label: string;
   summary: string;
   body: string;
@@ -224,7 +224,7 @@ export function buildVersions(
     author: snapshot?.reporter ?? null,
     isInitial: true,
     changedParts: new Set(partsFor(adapter)),
-    label: 'Created',
+    label: 'Initial',
     ...render()
   }];
 

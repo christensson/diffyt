@@ -129,6 +129,16 @@ const DiffPaneComponent = ({
     [onViewOptionsChange]
   );
 
+  // Props shared by the diff and the initial-state renderings so the two cannot drift apart.
+  const viewerProps = {
+    styles: diffStyles,
+    useDarkTheme: dark,
+    compareMethod: yaml ? DiffMethod.YAML : DiffMethod.WORDS_WITH_SPACE,
+    disableWorker: true,
+    hideSummary: true,
+    hideLineNumbers: true
+  };
+
   // In inline mode the viewer shows only the left title, so both sides are combined into it.
   const renderBody = () => {
     if (status !== 'ready') {
@@ -138,14 +148,21 @@ const DiffPaneComponent = ({
       return <div className="diff-pane__state"><Text info>{emptyMessage}</Text></div>;
     }
     if (diff.mode === 'initial') {
+      if (diff.text === '') {
+        return <div className="diff-pane__state"><Text info>{'The field was empty at creation.'}</Text></div>;
+      }
+      // Identical sides render every line as unchanged: same headings, fonts and background as a diff.
       return (
-        <div className="diff-pane__initial">
-          <div className="diff-pane__initial-title">{diff.title}</div>
-          <Text info size={Text.Size.S}>{'State at creation — nothing earlier to compare with.'}</Text>
-          {diff.text === ''
-            ? <Text info>{'The field was empty.'}</Text>
-            : <pre className="diff-pane__plain">{diff.text}</pre>}
-        </div>
+        <ReactDiffViewer
+          oldValue={diff.text}
+          newValue={diff.text}
+          splitView={false}
+          disableWordDiff
+          showDiffOnly={false}
+          leftTitle={`${diff.title} · state at creation`}
+          {...viewerProps}
+          {...sectionProps(diff.text, diff.text, sectionMarkers)}
+        />
       );
     }
     if (diff.oldText === '' && diff.newText === '') {
@@ -157,19 +174,17 @@ const DiffPaneComponent = ({
         newValue={diff.newText}
         splitView={viewOptions.splitView}
         disableWordDiff={yaml || !viewOptions.wordDiff}
-        compareMethod={yaml ? DiffMethod.YAML : DiffMethod.WORDS_WITH_SPACE}
         showDiffOnly={viewOptions.showDiffOnly}
-        useDarkTheme={dark}
         leftTitle={viewOptions.splitView ? diff.leftTitle : `${diff.leftTitle}   →   ${diff.rightTitle}`}
         rightTitle={diff.rightTitle}
-        styles={diffStyles}
-        disableWorker
-        hideSummary
-        hideLineNumbers
+        {...viewerProps}
         {...sectionProps(diff.oldText, diff.newText, sectionMarkers)}
       />
     );
   };
+
+  // The view options have no effect on a single state, so they are greyed out for the initial version.
+  const initial = diff?.mode === 'initial';
 
   return (
     <section className="diff-pane">
@@ -186,11 +201,11 @@ const DiffPaneComponent = ({
           {diff && <Text bold>{diff.label}</Text>}
         </div>
         <div className="diff-pane__toolbar-end">
-          <Toggle size={ToggleSize.Size14} checked={viewOptions.splitView} onChange={toggleSplit}>{'Side by side'}</Toggle>
+          <Toggle size={ToggleSize.Size14} disabled={initial} checked={viewOptions.splitView} onChange={toggleSplit}>{'Side by side'}</Toggle>
           {!yaml && (
-            <Toggle size={ToggleSize.Size14} checked={viewOptions.wordDiff} onChange={toggleWordDiff}>{'Word diff'}</Toggle>
+            <Toggle size={ToggleSize.Size14} disabled={initial} checked={viewOptions.wordDiff} onChange={toggleWordDiff}>{'Word diff'}</Toggle>
           )}
-          <Toggle size={ToggleSize.Size14} checked={viewOptions.showDiffOnly} onChange={toggleDiffOnly}>{'Only changes'}</Toggle>
+          <Toggle size={ToggleSize.Size14} disabled={initial} checked={viewOptions.showDiffOnly} onChange={toggleDiffOnly}>{'Only changes'}</Toggle>
         </div>
       </header>
       <div className="diff-pane__body">

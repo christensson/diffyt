@@ -44,32 +44,6 @@
   padding: calc(var(--ring-unit) * 3);
 }
 
-/* Initial version: plain text, nothing earlier to diff against. */
-.diff-pane__initial {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ring-unit);
-  padding: calc(var(--ring-unit) * 2);
-}
-
-.diff-pane__initial-title {
-  color: var(--ring-secondary-color);
-  font-size: var(--ring-font-size-smaller);
-}
-
-.diff-pane__plain {
-  margin: 0;
-  padding: calc(var(--ring-unit) * 2);
-  border: 1px solid var(--ring-line-color);
-  border-radius: var(--ring-border-radius);
-  background-color: var(--ring-sidebar-background-color);
-  font-family: var(--ring-font-family-monospace);
-  font-size: var(--ring-font-size-smaller);
-  line-height: var(--ring-line-height);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 /* Section heading line inside the Content diff (e.g. "Description:"), styled like a Ring UI h4. */
 .diff-pane__section {
   color: var(--ring-secondary-color);

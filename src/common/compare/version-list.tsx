@@ -28,7 +28,7 @@ const VersionRow = memo(({version, selected, dateFormat, onSelectSingle, onToggl
   const author = version.author !== null ? authorName(version.author) : null;
 
   return (
-    <li className={`version-row${selected ? ' version-row--selected' : ''}`}>
+    <li className={`version-row${selected ? ' version-row--selected' : ''}${version.isInitial ? ' version-row--initial' : ''}`}>
       <span className="version-row__check">
         <Checkbox
           checked={selected}

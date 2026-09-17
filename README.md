@@ -153,8 +153,8 @@ Due Date: 1 Oct 2026
 Type: Bug
 ```
 
-- One selected version: diff against the previous version listed in the tab. v1 has no predecessor,
-  so its text is shown as is.
+- One selected version: diff against the previous version listed in the tab. v1 (labelled
+  *Initial*) has no predecessor, so it is shown in the same view with nothing highlighted.
 - Two selected versions: diff between them, oldest on the left. The first pick is the baseline; a
   third pick replaces the second.
 

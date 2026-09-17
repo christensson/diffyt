@@ -132,6 +132,10 @@
   white-space: nowrap;
 }
 
+.version-row--initial .version-row__kind {
+  font-style: italic;
+}
+
 /* Line 2: date · author, in the secondary size. */
 .version-row__meta {
   display: flex;
