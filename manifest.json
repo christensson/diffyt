@@ -2,9 +2,9 @@
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "name": "diffyt",
   "title": "Diffyt",
-  "description": "Compare versions of tickets and articles, or compare two of them, with a line-by-line diff.",
+  "description": "Compare versions of issues and articles, or compare two of them, with a line-by-line diff.",
   "version": "0.1.0",
-  "changeNotes": "Initial version.",
+  "changeNotes": "Use YouTrack's \"issue\" terminology instead of \"ticket\".",
   "vendor": {
     "name": "Marcus Christensson",
     "url": "https://github.com/christensson/diffyt"
@@ -13,11 +13,11 @@
   "icon": "icon.svg",
   "widgets": [
     {
-      "key": "ticket-versions",
+      "key": "issue-versions",
       "name": "Compare versions",
       "description": "Compare summary, description and field versions of an issue",
-      "indexPath": "ticket-versions/index.html",
-      "iconPath": "ticket-versions/widget-icon.svg",
+      "indexPath": "issue-versions/index.html",
+      "iconPath": "issue-versions/widget-icon.svg",
       "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
       "permissions": [
         "READ_ISSUE"
@@ -28,11 +28,11 @@
       }
     },
     {
-      "key": "ticket-compare",
-      "name": "Compare with another ticket",
-      "description": "Compare this ticket with another ticket",
-      "indexPath": "ticket-compare/index.html",
-      "iconPath": "ticket-compare/widget-icon.svg",
+      "key": "issue-compare",
+      "name": "Compare with another issue",
+      "description": "Compare this issue with another issue",
+      "indexPath": "issue-compare/index.html",
+      "iconPath": "issue-compare/widget-icon.svg",
       "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
       "permissions": [
         "READ_ISSUE"

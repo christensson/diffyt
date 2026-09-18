@@ -2,20 +2,20 @@
 
 <img src="./public/icon.svg" alt="Diffyt icon" width="128" height="128">
 
-A YouTrack app that diffs tickets and knowledge base articles: the versions of one item over time, or
+A YouTrack app that diffs issues and knowledge base articles: the versions of one item over time, or
 two items against each other.
 
-It adds two items to the ticket options menu ("…" in the issue toolbar) and two to the article options
+It adds two items to the issue options menu ("…" in the issue toolbar) and two to the article options
 menu:
 
-- **Compare versions** - <img src="./src/widgets/ticket-versions/widget-icon.svg" width="20" height="20"> -
+- **Compare versions** - <img src="./src/widgets/issue-versions/widget-icon.svg" width="20" height="20"> -
   lists every summary, description, and custom field change from the issue's activity stream and
   shows a line-by-line diff, inline or side by side, with optional word-level highlighting.
-- **Compare with another ticket** - <img src="./src/widgets/ticket-compare/widget-icon.svg" width="20" height="20"> -
-  diffs the current ticket against another one picked through a
-  search field. The search matches ticket IDs and summary text. Two modes: **Content** (summary and
+- **Compare with another issue** - <img src="./src/widgets/issue-compare/widget-icon.svg" width="20" height="20"> -
+  diffs the current issue against another one picked through a
+  search field. The search matches issue IDs and summary text. Two modes: **Content** (summary and
   description, opened first) and **Fields** (all custom fields as one YAML-style document). Only the
-  latest state of both tickets is compared.
+  latest state of both issues is compared.
 - **Compare versions** and **Compare with another article** in the article menu do the same for
   articles, diffing the title and content only (articles have no custom fields, so there is no Fields
   mode). Article history comes from the `ArticleSummaryCategory` and `ArticleDescriptionCategory`
@@ -25,7 +25,7 @@ The diffing uses [react-diff-viewer-continued](https://github.com/Aeolun/react-d
 
 ### Compare versions
 
-- Every version is the **complete ticket state** after one save; v1 is the state at creation.
+- Every version is the **complete issue state** after one save; v1 is the state at creation.
 - Choose a part to compare: **Content** (summary and description) or **Fields** (all custom fields
   as one YAML-style document). The list shows the versions that changed that part, plus v1.
 - Select **one** version to see what changed in it, or tick **two** to diff them directly.
@@ -62,8 +62,8 @@ Get a permanent token: YouTrack profile → Account Security → New token. See
 npm run update
 ```
 
-4. In YouTrack, open **Administration → Apps → Diffyt**, attach the app to a project, then open a
-ticket in that project and pick **Compare versions** from the "…" menu.
+4. In YouTrack, open **Administration → Apps → Diffyt**, attach the app to a project, then open an
+issue in that project and pick **Compare versions** from the "…" menu.
 
 ## Project Structure
 
@@ -86,8 +86,8 @@ src/
 │       ├── compare-app.tsx/.css  # "Compare with another …" UI (search + diff)
 │       ├── version-list.tsx, entity-search.tsx, diff-pane.tsx/.css, use-dark-theme.ts, types.ts, base.css
 └── widgets/
-    ├── ticket-versions/         # Ticket: VersionsApp with the ISSUE adapter
-    ├── ticket-compare/           # Ticket: CompareApp with the ISSUE adapter
+    ├── issue-versions/          # Issue: VersionsApp with the ISSUE adapter
+    ├── issue-compare/            # Issue: CompareApp with the ISSUE adapter
     ├── article-versions/         # Article: VersionsApp with the ARTICLE adapter
     └── article-compare/          # Article: CompareApp with the ARTICLE adapter
         └── index.html / index.tsx / app.tsx / widget-icon.svg
@@ -107,9 +107,9 @@ src/
 | `npm run dev` | Upload a dev bundle that loads from `localhost:9000`, then start Vite with HMR |
 | `npm run pack` | Create `diffyt.zip` for manual upload |
 
-## Compare with another ticket / article
+## Compare with another issue / article
 
-The search field runs a YouTrack search query. Text that looks like a issue ID (`ABC-12` or a bare
+The search field runs a YouTrack search query. Text that looks like an issue ID (`ABC-12` or a bare
 number) is searched with `issue id:`; other text is searched in summaries with `summary:`, falling back
 to a free-text search when that finds nothing. The current issue is excluded from the results. After a
 pick, both issues' current state is loaded and diffed, current issue on the left. The Fields document
