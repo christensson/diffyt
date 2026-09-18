@@ -3,7 +3,7 @@
   "name": "diffyt",
   "title": "Diffyt",
   "description": "Compare versions of issues and articles, or compare two of them, with a line-by-line diff.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "changeNotes": "Use YouTrack's \"issue\" terminology instead of \"ticket\".",
   "vendor": {
     "name": "Marcus Christensson",
