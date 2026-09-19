@@ -13,9 +13,9 @@ menu:
   shows a line-by-line diff, inline or side by side, with optional word-level highlighting.
 - **Compare with another issue** - <img src="./src/widgets/issue-compare/widget-icon.svg" width="20" height="20"> -
   diffs the current issue against another one picked through a
-  search field. The search matches issue IDs and summary text. Two modes: **Content** (summary and
-  description, opened first) and **Fields** (all custom fields as one YAML-style document). Only the
-  latest state of both issues is compared.
+  search field. The search matches issue IDs and summary text. Two modes: **Content** (summary,
+  description, and multi-line text fields, opened first) and **Fields** (all other custom fields as one
+  YAML-style document). Only the latest state of both issues is compared.
 - **Compare versions** and **Compare with another article** in the article menu do the same for
   articles, diffing the title and content only (articles have no custom fields, so there is no Fields
   mode). Article history comes from the `ArticleSummaryCategory` and `ArticleDescriptionCategory`
@@ -26,8 +26,9 @@ The diffing uses [react-diff-viewer-continued](https://github.com/Aeolun/react-d
 ### Compare versions
 
 - Every version is the **complete issue state** after one save; v1 is the state at creation.
-- Choose a part to compare: **Content** (summary and description) or **Fields** (all custom fields
-  as one YAML-style document). The list shows the versions that changed that part, plus v1.
+- Choose a part to compare: **Content** (summary, description, and multi-line text fields) or
+  **Fields** (all other custom fields as one YAML-style document). The list shows the versions that
+  changed that part, plus v1.
 - Select **one** version to see what changed in it, or tick **two** to diff them directly.
 - Collapse the version list to give the diff the full width.
 - Dates follow the **date format and time zone from your YouTrack profile** (Profile → General), read
@@ -127,7 +128,8 @@ lists only the versions that changed its part (plus v1); version numbers are glo
 v1, v3, v7. Because each version is a full state, any two picks diff correctly.
 
 The Content part is a `Summary:` heading, the summary, a blank line, a `Description:` heading, and the
-description. The heading lines are rendered as section titles in the diff:
+description, followed by one section per multi-line **Text** custom field (field type `text`), each
+headed by the field's name. The heading lines are rendered as section titles in the diff:
 
 ```
 Summary:
@@ -135,6 +137,10 @@ Start button stays grey after restart
 
 Description:
 Intro paragraph about the feature.
+…
+
+Steps to reproduce:
+1. Restart the device.
 …
 ```
 
@@ -145,7 +151,8 @@ Intro paragraph about the feature.
   walking backwards (`before = after − added + removed`). Without current values, states are built
   forwards from the oldest item's `removed`.
 - The Fields part lists every custom field of the issue in project order, including unchanged ones
-  (they fold away with "Only changes"), plus fields that appear in history but no longer exist. The
+  (they fold away with "Only changes"), plus fields that appear in history but no longer exist. Text
+  fields are left out here because they are sections of the Content part. The
   document is compared with the diff viewer's YAML method, which is line-based, so word-level
   highlighting is not available in that mode:
 

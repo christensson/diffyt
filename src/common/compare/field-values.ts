@@ -36,6 +36,18 @@ export const presentOne = (value: FieldItemValue, fieldTypeId: string, dateForma
 };
 
 /**
+ * The text of a single-value text field: `TextFieldValue.text` in the snapshot, a plain string in
+ * `TextCustomFieldActivityItem.added`/`removed`. Empty when the field has no value.
+ */
+export const textOf = (values: FieldItemValue[]): string => {
+  const [value] = values;
+  if (value === undefined) {
+    return '';
+  }
+  return isObject(value) ? value.text ?? value.presentation ?? '' : String(value);
+};
+
+/**
  * `label: value` for single-value fields, a YAML-style list for multi-value fields,
  * and just `label:` when the field is empty.
  */

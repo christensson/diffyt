@@ -4,7 +4,7 @@
   "title": "Diffyt",
   "description": "Compare versions of issues and articles, or compare two of them, with a line-by-line diff.",
   "version": "0.1.1",
-  "changeNotes": "Use YouTrack's \"issue\" terminology instead of \"ticket\".",
+  "changeNotes": "Text custom fields are shown as sections of the Content part.",
   "vendor": {
     "name": "Marcus Christensson",
     "url": "https://github.com/christensson/diffyt"

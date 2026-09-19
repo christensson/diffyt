@@ -38,6 +38,7 @@ export interface VersionsAppProps {
 const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsAppProps) => {
   const parts = partsFor(adapter);
   const [versions, setVersions] = useState<Version[]>([]);
+  const [textLabels, setTextLabels] = useState<string[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -65,10 +66,11 @@ const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsApp
         if (cancelled) {
           return;
         }
-        const result = buildVersions(adapter, textItems, fieldItems, {Body: oldestBody, Summary: oldestSummary}, snapshot, dateFormat);
-        setVersions(result);
+        const timeline = buildVersions(adapter, textItems, fieldItems, {Body: oldestBody, Summary: oldestSummary}, snapshot, dateFormat);
+        setVersions(timeline.versions);
+        setTextLabels(timeline.textLabels);
         // Preselect the newest version of the default part so the dialog never opens empty.
-        setSelectedIds(newestId(versionsFor(result, 'Content')));
+        setSelectedIds(newestId(versionsFor(timeline.versions, 'Content')));
         setStatus('ready');
       })
       .catch((error: unknown) => {
@@ -131,7 +133,7 @@ const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsApp
         sidebarCollapsed={sidebarCollapsed}
         dark={dark}
         yaml={part === 'Fields'}
-        sectionMarkers={part === 'Content' ? contentMarkers(adapter) : undefined}
+        sectionMarkers={part === 'Content' ? contentMarkers(adapter, textLabels) : undefined}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={expandSidebar}
       />

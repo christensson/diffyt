@@ -10,7 +10,7 @@ import {createComponentLogger} from '@/common/utils/logger';
 import {type EntityRef, type EntitySnapshot, fetchRef, fetchSnapshot} from './api';
 import type {DateFormat} from './date-format';
 import type {EntityAdapter} from './entity';
-import {buildCatalogue, contentMarkers, renderContent, renderFieldsFor} from './issue-state';
+import {type CatalogueEntry, buildCatalogue, contentMarkers, renderContentFor, renderFieldsFor, textLabels} from './issue-state';
 import type {DiffModel, ViewOptions} from './types';
 import {type Part, partsFor} from './versions';
 import {useDarkTheme} from './use-dark-theme';
@@ -42,6 +42,7 @@ const buildDiff = (
   adapter: EntityAdapter,
   current: LoadedEntity,
   other: LoadedEntity,
+  catalogue: CatalogueEntry[],
   dateFormat: DateFormat
 ): DiffModel => {
   const titles = {leftTitle: titleOf(current), rightTitle: titleOf(other)};
@@ -49,18 +50,38 @@ const buildDiff = (
     return {
       mode: 'diff',
       label: mode,
-      oldText: renderContent(current.snapshot.summary, current.snapshot.body, adapter),
-      newText: renderContent(other.snapshot.summary, other.snapshot.body, adapter),
+      oldText: renderContentFor(current.snapshot, catalogue, adapter),
+      newText: renderContentFor(other.snapshot, catalogue, adapter),
       ...titles
     };
   }
-  const catalogue = buildCatalogue([current.snapshot, other.snapshot]);
   return {
     mode: 'diff',
     label: mode,
     oldText: renderFieldsFor(current.snapshot, catalogue, dateFormat),
     newText: renderFieldsFor(other.snapshot, catalogue, dateFormat),
     ...titles
+  };
+};
+
+interface Comparison {
+  diff: DiffModel;
+  /** Heading lines of the Content text: Summary, the body, and both entities' text fields. */
+  sectionMarkers: string[];
+}
+
+const buildComparison = (
+  mode: Part,
+  adapter: EntityAdapter,
+  current: LoadedEntity,
+  other: LoadedEntity,
+  dateFormat: DateFormat
+): Comparison => {
+  // The union of both entities' custom fields, current entity's project order first.
+  const catalogue: CatalogueEntry[] = buildCatalogue([current.snapshot, other.snapshot]);
+  return {
+    diff: buildDiff(mode, adapter, current, other, catalogue, dateFormat),
+    sectionMarkers: contentMarkers(adapter, textLabels(catalogue))
   };
 };
 
@@ -143,8 +164,8 @@ const CompareAppComponent = ({host, adapter, entityId, dateFormat}: CompareAppPr
     []
   );
 
-  const diff = useMemo(
-    () => (current && other && otherStatus === 'ready' ? buildDiff(mode, adapter, current, other, dateFormat) : null),
+  const comparison = useMemo(
+    () => (current && other && otherStatus === 'ready' ? buildComparison(mode, adapter, current, other, dateFormat) : null),
     [mode, adapter, current, other, otherStatus, dateFormat]
   );
 
@@ -163,13 +184,13 @@ const CompareAppComponent = ({host, adapter, entityId, dateFormat}: CompareAppPr
     }
     return (
       <DiffPane
-        diff={diff}
+        diff={comparison?.diff ?? null}
         status="ready"
         viewOptions={viewOptions}
         sidebarCollapsed={false}
         dark={dark}
         yaml={mode === 'Fields'}
-        sectionMarkers={mode === 'Content' ? contentMarkers(adapter) : undefined}
+        sectionMarkers={mode === 'Content' ? comparison?.sectionMarkers : undefined}
         emptyMessage={`Search for an ${adapter.noun} by ID or ${adapter.summaryNoun} to compare with ${current.ref.idReadable}.`}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={noop}

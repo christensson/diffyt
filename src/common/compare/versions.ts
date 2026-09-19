@@ -5,9 +5,12 @@ import {type FieldItemValue, isMultiValueType, stateAfter, stateBefore, toList} 
 import {
   type CatalogueEntry,
   entryFromSnapshotField,
+  isTextEntry,
   mergeCatalogue,
   renderContent,
-  renderFieldLines
+  renderFieldLines,
+  textLabels,
+  textSections
 } from './issue-state';
 
 /** The views of a version; the list is filtered to versions that changed the selected part. */
@@ -31,10 +34,17 @@ export interface Version {
   label: string;
   summary: string;
   body: string;
-  /** Summary heading, summary, body heading, body. */
+  /** Summary heading, summary, body heading, body, then a heading and text per text custom field. */
   contentText: string;
-  /** YAML-style document of every custom field in project order (empty for articles). */
+  /** YAML-style document of every non-text custom field in project order (empty for articles). */
   fieldsText: string;
+}
+
+/** The version timeline plus the text field labels that head the extra Content sections. */
+export interface VersionTimeline {
+  /** Newest first. */
+  versions: Version[];
+  textLabels: string[];
 }
 
 export type OldestRemovedByKind = Record<TextKind, OldestRemoved | null>;
@@ -200,10 +210,11 @@ export function buildVersions(
   oldestRemoved: OldestRemovedByKind,
   snapshot: EntitySnapshot | null,
   dateFormat: DateFormat
-): Version[] {
+): VersionTimeline {
   const catalogue = buildCatalogue(snapshot, fieldItems);
   const timelines = buildFieldTimelines(catalogue, fieldItems, snapshot);
   const labelById = new Map(catalogue.map(entry => [entry.id, entry.label]));
+  const textFieldIds = new Set(catalogue.filter(isTextEntry).map(entry => entry.id));
 
   const state: EntityState = {
     summary: initialText('Summary', adapter, textItems, oldestRemoved, snapshot),
@@ -213,7 +224,7 @@ export function buildVersions(
   const render = (): Pick<Version, 'summary' | 'body' | 'contentText' | 'fieldsText'> => ({
     summary: state.summary,
     body: state.body,
-    contentText: renderContent(state.summary, state.body, adapter),
+    contentText: renderContent(state.summary, state.body, adapter, textSections(state.fields, catalogue)),
     fieldsText: renderFieldLines(state.fields, catalogue, dateFormat)
   });
 
@@ -248,7 +259,8 @@ export function buildVersions(
         if (after) {
           state.fields.set(id, after);
         }
-        changedParts.add('Fields');
+        // Text fields are Content sections, so their changes belong to that part.
+        changedParts.add(textFieldIds.has(id) ? 'Content' : 'Fields');
         pushUnique(labels, labelById.get(id) ?? event.item.field.presentation);
       }
     }
@@ -265,5 +277,5 @@ export function buildVersions(
     });
   }
 
-  return versions.reverse();
+  return {versions: versions.reverse(), textLabels: textLabels(catalogue)};
 }
