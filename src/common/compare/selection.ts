@@ -1,7 +1,8 @@
 import type {ActivityAuthor} from './api';
 import {type DateFormat, formatDateTime} from './date-format';
 import type {DiffModel} from './types';
-import {type Part, type Version, textFor} from './versions';
+import {type VersionRow, findRow, selectedPart} from './rows';
+import {type Part, type Version, textFor, versionsFor} from './versions';
 
 export type {DiffModel, LoadStatus, ViewOptions} from './types';
 
@@ -23,9 +24,6 @@ export const describeVersion = (version: Version, dateFormat: DateFormat): strin
   return parts.join(' · ');
 };
 
-const findById = (versions: Version[], id: string): Version | undefined =>
-  versions.find(version => version.id === id);
-
 /**
  * Toggles `id` in the selection, keeping at most MAX_SELECTED versions.
  * The first pick is the baseline and stays; a third pick replaces the second one.
@@ -39,6 +37,7 @@ export function toggleSelection(selectedIds: string[], id: string): string[] {
 
 const diffBetween = (older: Version, newer: Version, part: Part, dateFormat: DateFormat): DiffModel => ({
   mode: 'diff',
+  part,
   label: part,
   oldText: textFor(older, part),
   newText: textFor(newer, part),
@@ -47,29 +46,33 @@ const diffBetween = (older: Version, newer: Version, part: Part, dateFormat: Dat
 });
 
 /**
- * One selected version: the diff of the part against the previous listed version (or its plain text
- * for the creation state). Two selected versions: the diff of the part between them, oldest on the left.
- * `visibleVersions` is the list shown for `part`, newest first.
+ * One selected row: the diff of its part against the previous version that changed that part (or the
+ * plain text for the creation state). Two selected rows: the diff between their versions, oldest on the
+ * left. The part is the one the selection is committed to; an Initial-only selection uses `defaultPart`.
  */
 export function deriveDiff(
-  visibleVersions: Version[],
-  selectedIds: string[],
-  part: Part,
+  versions: Version[],
+  rows: VersionRow[],
+  selectedKeys: string[],
+  defaultPart: Part,
   dateFormat: DateFormat
 ): DiffModel | null {
-  const selected = selectedIds
-    .map(id => findById(visibleVersions, id))
-    .filter((version): version is Version => version !== undefined);
+  const selected = selectedKeys
+    .map(key => findRow(rows, key))
+    .filter((row): row is VersionRow => row !== undefined)
+    .map(row => row.version);
 
   if (selected.length === 0) {
     return null;
   }
+  const part = selectedPart(rows, selectedKeys) ?? defaultPart;
 
   if (selected.length === 1) {
     const [version] = selected;
-    const predecessor = visibleVersions.find(other => other.number < version.number);
+    // Versions that changed the part, newest first: the predecessor is the first one older than `version`.
+    const predecessor = versionsFor(versions, part).find(other => other.number < version.number);
     if (!predecessor) {
-      return {mode: 'initial', label: part, text: textFor(version, part), title: describeVersion(version, dateFormat)};
+      return {mode: 'initial', part, label: part, text: textFor(version, part), title: describeVersion(version, dateFormat)};
     }
     return diffBetween(predecessor, version, part, dateFormat);
   }

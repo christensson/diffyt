@@ -158,3 +158,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Kind tag in the All view ("Content" / "Fields") on the title line, echoing the diff's section headings. */
+.version-row__part {
+  flex: none;
+  margin-left: auto;
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* With a tag present, the version number sits right after it rather than pushing itself to the far end. */
+.version-row__part + .version-row__number {
+  margin-left: 0;
+}

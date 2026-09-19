@@ -26,10 +26,12 @@ The diffing uses [react-diff-viewer-continued](https://github.com/Aeolun/react-d
 ### Compare versions
 
 - Every version is the **complete issue state** after one save; v1 is the state at creation.
-- Choose a part to compare: **Content** (summary, description, and multi-line text fields) or
-  **Fields** (all other custom fields as one YAML-style document). The list shows the versions that
-  changed that part, plus v1.
-- Select **one** version to see what changed in it, or tick **two** to diff them directly.
+- Choose a view: **All** (opened first) lists every change in time order; **Content** (summary,
+  description, and multi-line text fields) and **Fields** (all other custom fields as one YAML-style
+  document) list only the versions that changed that part, plus v1.
+- Select **one** version to see what changed in it, or tick **two** to diff them directly. In the All
+  view a Content text is never diffed against a Fields document: once a Content row is ticked, the
+  checkboxes of Fields rows are disabled, and vice versa. v1 pairs with either kind.
 - Collapse the version list to give the diff the full width.
 - Dates follow the **date format and time zone from your YouTrack profile** (Profile → General), read
   once per widget from `GET /api/users/me`. If that request fails, YouTrack's default format
@@ -78,6 +80,7 @@ src/
 │       ├── entity.ts             # Issue/article adapter: REST base, categories, labels
 │       ├── api.ts                # REST types + fetches (activities, snapshot, search)
 │       ├── versions.ts           # Timeline of full entity states (v1 + one per save)
+│       ├── rows.ts               # List rows per view (All | Content | Fields), kind compatibility
 │       ├── selection.ts          # Selection rules, diff derivation, version titles
 │       ├── date-format.ts        # Profile date format/time zone + Java-pattern formatter
 │       ├── field-values.ts       # Custom field value presentation and multi-value set arithmetic
@@ -123,9 +126,14 @@ timeline of **complete issue states**. Items with the same timestamp were saved 
 version, labelled with everything it changed (e.g. "Summary, Priority"). v1 is the state at creation,
 dated with the issue's creation time and reporter.
 
-Each version holds two parts, and the **Content | Fields** tabs pick which part is diffed. A tab
-lists only the versions that changed its part (plus v1); version numbers are global, so a tab may show
-v1, v3, v7. Because each version is a full state, any two picks diff correctly.
+Each version holds two parts. The **Content** and **Fields** tabs pick which part is diffed and list
+only the versions that changed that part (plus v1); version numbers are global, so a tab may show v1,
+v3, v7. The **All** tab lists every change in one timeline with a small *Content* / *Fields* tag per
+row; a save that changed both parts (e.g. "Summary, Priority") is split into a Content row ("Summary")
+and a Fields row ("Priority") with the same version number. Because each version is a full state, any
+two picks of the same kind diff correctly; the checkboxes of the other kind are disabled while one kind
+is selected. v1 (*Initial*) is a full state of both kinds, so it pairs with any row; on its own it shows
+the Content state at creation.
 
 The Content part is a `Summary:` heading, the summary, a blank line, a `Description:` heading, and the
 description, followed by one section per multi-line **Text** custom field (field type `text`), each

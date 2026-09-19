@@ -7,7 +7,8 @@ import {fetchFieldActivities, fetchOldestRemoved, fetchSnapshot, fetchTextActivi
 import type {DateFormat} from './date-format';
 import type {EntityAdapter} from './entity';
 import {contentMarkers} from './issue-state';
-import {type Part, type Version, buildVersions, partsFor, versionsFor} from './versions';
+import {type Version, buildVersions} from './versions';
+import {type View, type VersionRow, isRowDisabled, rowsFor, selectedPart, viewsFor} from './rows';
 import {type LoadStatus, type ViewOptions, deriveDiff, toggleSelection} from './selection';
 import {useDarkTheme} from './use-dark-theme';
 import {VersionList} from './version-list';
@@ -19,7 +20,7 @@ const logger = createComponentLogger('versions-app');
 
 const DEFAULT_VIEW_OPTIONS: ViewOptions = {splitView: true, wordDiff: true, showDiffOnly: false};
 
-const newestId = (versions: Version[]): string[] => (versions.length > 0 ? [versions[0].id] : []);
+const newestKey = (rows: VersionRow[]): string[] => (rows.length > 0 ? [rows[0].key] : []);
 
 /** Auxiliary requests only enrich the list; a failure is logged and replaced by a fallback value. */
 const warnAnd = <T,>(what: string, entityId: string, fallback: T) => (error: unknown): T => {
@@ -34,15 +35,15 @@ export interface VersionsAppProps {
   dateFormat: DateFormat;
 }
 
-/** Timeline of complete entity states with a per-part diff (issues: Content | Fields, articles: Content). */
+/** Timeline of complete entity states with a per-part diff (issues: All | Content | Fields, articles: Content). */
 const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsAppProps) => {
-  const parts = partsFor(adapter);
+  const views = viewsFor(adapter);
   const [versions, setVersions] = useState<Version[]>([]);
   const [textLabels, setTextLabels] = useState<string[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [part, setPart] = useState<Part>('Content');
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [view, setView] = useState<View>(views[0]);
   const [viewOptions, setViewOptions] = useState<ViewOptions>(DEFAULT_VIEW_OPTIONS);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const dark = useDarkTheme();
@@ -69,8 +70,8 @@ const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsApp
         const timeline = buildVersions(adapter, textItems, fieldItems, {Body: oldestBody, Summary: oldestSummary}, snapshot, dateFormat);
         setVersions(timeline.versions);
         setTextLabels(timeline.textLabels);
-        // Preselect the newest version of the default part so the dialog never opens empty.
-        setSelectedIds(newestId(versionsFor(timeline.versions, 'Content')));
+        // Preselect the newest row of the opening view so the dialog never opens empty.
+        setSelectedKeys(newestKey(rowsFor(timeline.versions, views[0])));
         setStatus('ready');
       })
       .catch((error: unknown) => {
@@ -85,17 +86,30 @@ const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsApp
     return () => {
       cancelled = true;
     };
+    // `views` derives from `adapter`, so it is not a separate dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host, adapter, entityId, dateFormat]);
 
-  const visibleVersions = useMemo(() => versionsFor(versions, part), [versions, part]);
-  const diff = useMemo(() => deriveDiff(visibleVersions, selectedIds, part, dateFormat), [visibleVersions, selectedIds, part, dateFormat]);
+  const rows = useMemo(() => rowsFor(versions, view), [versions, view]);
+  const committedPart = useMemo(() => selectedPart(rows, selectedKeys), [rows, selectedKeys]);
+  const diff = useMemo(
+    () => deriveDiff(versions, rows, selectedKeys, view === 'All' ? 'Content' : view, dateFormat),
+    [versions, rows, selectedKeys, view, dateFormat]
+  );
 
-  const handleSelectSingle = useCallback((id: string) => setSelectedIds([id]), []);
-  const handleToggle = useCallback((id: string) => setSelectedIds(previous => toggleSelection(previous, id)), []);
-  const handlePartChange = useCallback(
-    (next: Part) => {
-      setPart(next);
-      setSelectedIds(newestId(versionsFor(versions, next)));
+  const handleSelectSingle = useCallback((key: string) => setSelectedKeys([key]), []);
+  const handleToggle = useCallback(
+    (key: string) => setSelectedKeys(previous => {
+      const row = rows.find(candidate => candidate.key === key);
+      // Guard against a stale click on a row of the other kind.
+      return row && isRowDisabled(row, selectedPart(rows, previous)) ? previous : toggleSelection(previous, key);
+    }),
+    [rows]
+  );
+  const handleViewChange = useCallback(
+    (next: View) => {
+      setView(next);
+      setSelectedKeys(newestKey(rowsFor(versions, next)));
     },
     [versions]
   );
@@ -113,14 +127,16 @@ const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsApp
     >
       {!sidebarCollapsed && (
         <VersionList
-          versions={visibleVersions}
+          rows={rows}
+          versionCount={versions.length}
           status={status}
           errorMessage={errorMessage}
-          selectedIds={selectedIds}
-          parts={parts}
-          part={part}
+          selectedKeys={selectedKeys}
+          selectedPart={committedPart}
+          views={views}
+          view={view}
           dateFormat={dateFormat}
-          onPartChange={handlePartChange}
+          onViewChange={handleViewChange}
           onSelectSingle={handleSelectSingle}
           onToggle={handleToggle}
           onCollapse={collapseSidebar}
@@ -132,8 +148,8 @@ const VersionsAppComponent = ({host, adapter, entityId, dateFormat}: VersionsApp
         viewOptions={viewOptions}
         sidebarCollapsed={sidebarCollapsed}
         dark={dark}
-        yaml={part === 'Fields'}
-        sectionMarkers={part === 'Content' ? contentMarkers(adapter, textLabels) : undefined}
+        yaml={diff?.part === 'Fields'}
+        sectionMarkers={diff?.part === 'Content' ? contentMarkers(adapter, textLabels) : undefined}
         onViewOptionsChange={handleViewOptionsChange}
         onExpandSidebar={expandSidebar}
       />

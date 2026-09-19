@@ -1,3 +1,5 @@
+import type {Part} from './versions';
+
 export type LoadStatus = 'loading' | 'ready' | 'error';
 
 export interface ViewOptions {
@@ -6,6 +8,7 @@ export interface ViewOptions {
   showDiffOnly: boolean;
 }
 
+/** `part` says which text is diffed, so the pane can pick YAML mode and section headings from it. */
 export type DiffModel =
-  | {mode: 'diff'; label: string; oldText: string; newText: string; leftTitle: string; rightTitle: string}
-  | {mode: 'initial'; label: string; text: string; title: string};
+  | {mode: 'diff'; part: Part; label: string; oldText: string; newText: string; leftTitle: string; rightTitle: string}
+  | {mode: 'initial'; part: Part; label: string; text: string; title: string};

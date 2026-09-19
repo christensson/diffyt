@@ -49,6 +49,7 @@ const buildDiff = (
   if (mode === 'Content') {
     return {
       mode: 'diff',
+      part: mode,
       label: mode,
       oldText: renderContentFor(current.snapshot, catalogue, adapter),
       newText: renderContentFor(other.snapshot, catalogue, adapter),
@@ -57,6 +58,7 @@ const buildDiff = (
   }
   return {
     mode: 'diff',
+    part: mode,
     label: mode,
     oldText: renderFieldsFor(current.snapshot, catalogue, dateFormat),
     newText: renderFieldsFor(other.snapshot, catalogue, dateFormat),

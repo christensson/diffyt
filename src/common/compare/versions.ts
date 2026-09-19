@@ -32,6 +32,8 @@ export interface Version {
   changedParts: ReadonlySet<Part>;
   /** "Initial" for v1, otherwise the changed names, e.g. "Summary, Priority". */
   label: string;
+  /** The changed names split by the part they belong to (both empty for v1). */
+  partLabels: Record<Part, string[]>;
   summary: string;
   body: string;
   /** Summary heading, summary, body heading, body, then a heading and text per text custom field. */
@@ -236,6 +238,7 @@ export function buildVersions(
     isInitial: true,
     changedParts: new Set(partsFor(adapter)),
     label: 'Initial',
+    partLabels: {Content: [], Fields: []},
     ...render()
   }];
 
@@ -245,14 +248,17 @@ export function buildVersions(
   ].sort((a, b) => byTimestampAsc(a.item, b.item));
 
   for (const group of groupByTimestamp(events)) {
-    const changedParts = new Set<Part>();
+    const partLabels: Record<Part, string[]> = {Content: [], Fields: []};
     const labels: string[] = [];
+    const record = (part: Part, label: string): void => {
+      pushUnique(partLabels[part], label);
+      pushUnique(labels, label);
+    };
     for (const event of group) {
       if (event.kind === 'text') {
         const kind = kindOfItem(event.item, adapter);
         state[kind === 'Summary' ? 'summary' : 'body'] = event.item.added ?? '';
-        changedParts.add('Content');
-        pushUnique(labels, kindLabel(kind, adapter));
+        record('Content', kindLabel(kind, adapter));
       } else {
         const id = fieldKey(event.item.field);
         const after = timelines.get(id)?.afterById.get(event.item.id);
@@ -260,8 +266,7 @@ export function buildVersions(
           state.fields.set(id, after);
         }
         // Text fields are Content sections, so their changes belong to that part.
-        changedParts.add(textFieldIds.has(id) ? 'Content' : 'Fields');
-        pushUnique(labels, labelById.get(id) ?? event.item.field.presentation);
+        record(textFieldIds.has(id) ? 'Content' : 'Fields', labelById.get(id) ?? event.item.field.presentation);
       }
     }
     const first = group[0].item;
@@ -271,8 +276,9 @@ export function buildVersions(
       timestamp: first.timestamp,
       author: first.author,
       isInitial: false,
-      changedParts,
+      changedParts: new Set(partsFor(adapter).filter(part => partLabels[part].length > 0)),
       label: labels.join(', '),
+      partLabels,
       ...render()
     });
   }
