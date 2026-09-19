@@ -3,7 +3,7 @@
   "name": "diffyt",
   "title": "Diffyt",
   "description": "Compare versions of issues and articles, or compare two of them, with a line-by-line diff.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "changeNotes": "Version 0.1.2:<br/>- Show multi-line text fields in content view instead of fields view.<br/>- Add combined content and fields version view for issues.",
   "vendor": {
     "name": "Marcus Christensson",
